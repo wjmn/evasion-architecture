@@ -9,18 +9,108 @@
   height: inherit;
 }
 
-body {
-  font-family: 'Source Sans Pro', 'Trebuchet MS', 'Lucida Grande', 'Bitstream Vera Sans', 'Helvetica Neue', sans-serif;
-  margin: 0;
-  text-align: center;
-  color: #293c4b;
+html {
+  font-family: "Iosevka Aile", Iosevka, "Roboto Mono", "Cascadia Code", Consolas, "Fira Code", Menlo, Monaco, ui-monospace, monospace;
 }
 
-h1 {
-  font-size: 30px;
+@keyframes hunter-indicator {
+  0% {
+    background-color: cyan;
+    transform: scale(1) rotateZ(0deg);
+  }
+  50% {
+    background-color: crimson;
+    transform: scale(2);
+  }
+  100% {
+    background-color: cyan;
+    transform: scale(1) rotateZ(180deg);
+  }
 }
 
-img {
-  margin: 20px 0;
-  max-width: 200px;
+@keyframes hunter-decorator-red {
+  0% {
+    transform:rotateZ(0);
+  }
+  100% {
+    transform:rotateZ(360deg);
+  }
+}
+
+@keyframes hunter-decorator-blue {
+  0% {
+    transform:rotateZ(45deg);
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.76;
+  }
+  100% {
+    transform:rotateZ(-325deg);
+    opacity: 1;
+  }
+}
+
+@keyframes prey-decorator {
+  0% {
+    transform: scale(0);
+  }
+  50% {
+    transform: scale(1);
+  }
+  100% {
+    transform: scale(0);
+  }
+}
+
+@keyframes wall {
+  0% {
+    border-color: cyan;
+    background-color: crimson;
+  }
+  50% {
+    border-color: crimson;
+    background-color: cyan;
+  }
+  100% {
+    border-color: cyan;
+    background-color: crimson;
+  }
+}
+
+
+
+
+.hunter-indicator {
+  animation-name: hunter-indicator;
+  animation-duration: 0.5s;
+  animation-iteration-count: infinite;
+  animation-timing-function: linear;
+}
+
+
+.hunter-decorator-red {
+  animation-name: hunter-decorator-red;
+  animation-duration: 2s;
+  animation-iteration-count: infinite;
+  animation-timing-function: linear;
+}
+.hunter-decorator-blue {
+  animation-name: hunter-decorator-blue;
+  animation-duration: 4s;
+  animation-iteration-count: infinite;
+  animation-timing-function: linear;
+}
+
+.prey-decorator {
+  animation-name: prey-decorator;
+  animation-duration: 1s;
+  animation-iteration-count: infinite;
+}
+
+.wall {
+  animation-name: wall;
+  animation-duration: 1.5s;
+  animation-iteration-count: infinite;
+  animation-timing-function: linear;
 }

@@ -289,9 +289,9 @@ class Client:
 
         # Dummy random player: delete the code below and replace with your player.
         roll = random.random()
-        if roll <= 0.5:
+        if roll <= 0.9:
             return no_op()
-        elif 0.5 < roll <= 0.72:
+        elif 0.9 < roll <= 0.945:
             if len(game.walls) < self.config.max_walls and (game.hunter_last_wall_time is None or game.ticker >= game.hunter_last_wall_time + self.config.next_wall_time):
                 x = game.hunter_position.x
                 y1 = random.randint(0, game.hunter_position.y)
@@ -299,7 +299,7 @@ class Client:
                 return create_wall(Wall(x, y1, x, y2))
             else:
                 return no_op()
-        elif 0.72 < roll <= 0.94: 
+        elif 0.945 < roll <= 0.99: 
             if len(game.walls) < self.config.max_walls and (game.hunter_last_wall_time is None or game.ticker >= game.hunter_last_wall_time + self.config.next_wall_time):
                 y = game.hunter_position.y
                 x1 = random.randint(0, game.hunter_position.x)
@@ -328,7 +328,7 @@ class Client:
 
         # Dummy random player: delete the code below and replace with your player.
         roll = random.random()
-        if roll <= 0.5:
+        if roll <= 0.8:
             return no_op()
         else:
             x = random.randint(-1, 1)

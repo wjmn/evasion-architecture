@@ -22,7 +22,7 @@ let InitialTime = 120000.0
 
 /// Minimum time in milliseconds between state updates sent to observer / clients.
 [<Literal>]
-let ThrottleTime = 2.5
+let ThrottleTime = 5.0
 
 //-------------------------------------------------------------------------------
 // TYPES & UTILITY FUNCS

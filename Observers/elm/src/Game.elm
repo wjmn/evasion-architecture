@@ -3,6 +3,15 @@ module Game exposing (..)
 import Array exposing (Array)
 
 
+--------------------------------------------------------------------------------
+-- CONSTANTS
+--------------------------------------------------------------------------------
+
+{-| Maximum width of game field.-}
+maxWidth = 300
+
+{-| Maximum height of game field.-}
+maxHeight = 300
 
 --------------------------------------------------------------------------------
 -- BASIC TYPES
@@ -35,8 +44,8 @@ type alias Velocity =
 
 type alias Wall =
     { x1 : Metres
-    , x2 : Metres
     , y1 : Metres
+    , x2 : Metres
     , y2 : Metres
     }
 
@@ -81,9 +90,9 @@ dummyGame : Game
 dummyGame =
     { ticker = 0
     , hunterPosition = { x = 0, y = 0 }
-    , hunterVelocity = { x = 0, y = 0 }
+    , hunterVelocity = { x = 1, y = 1 }
     , hunterLastWallTime = Nothing
-    , preyPosition = { x = 0, y = 0 }
+    , preyPosition = { x = 200, y = 230 }
     , preyVelocity = { x = 0, y = 0 }
     , walls = []
     }
@@ -155,12 +164,12 @@ decodeGame string =
             decodeIntAt splits 10
 
         walls =
-            List.range 0 numWalls
+            List.range 0 (numWalls - 1)
                 |> List.map
                     (\i ->
                         { x1 = decodeIntAt splits (11 + i * 4)
-                        , x2 = decodeIntAt splits (12 + i * 4)
-                        , y1 = decodeIntAt splits (13 + i * 4)
+                        , y1 = decodeIntAt splits (12 + i * 4)
+                        , x2 = decodeIntAt splits (13 + i * 4)
                         , y2 = decodeIntAt splits (14 + i * 4)
                         }
                     )
@@ -232,10 +241,10 @@ decodeLoopState string =
         "continues" ->
             Continues (decodeGameAndTimeRemaining (Array.slice 1 (Array.length splits) splits |> Array.toList |> String.join " "))
 
-        "preyIsCaught" ->
+        "caught" ->
             PreyIsCaught (decodeGameAndTimeRemaining (Array.slice 1 (Array.length splits) splits |> Array.toList |> String.join " "))
 
-        "preyTimeout" ->
+        "timeout" ->
             PreyTimeout (decodeGameAndTimeRemaining (Array.slice 1 (Array.length splits) splits |> Array.toList |> String.join " "))
 
         _ ->

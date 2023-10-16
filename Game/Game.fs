@@ -198,6 +198,7 @@ let step (game: State) (hunterAction: HunterAction) (preyAction: PreyAction) : S
         Walls = walls }
 
 /// Steps the game and returns an outcome.
+/// TODO: does it matter if there is a wall in the way? Probably does. This needs to check for a wall between prey and hunter...Add a test for this edge case. 
 let stepOutcome (game: State) (hunterAction: HunterAction) (preyAction: PreyAction) : Outcome =
     let newState = step game hunterAction preyAction
     if distance newState.HunterPosition newState.PreyPosition <= 4 then 
