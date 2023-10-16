@@ -8,6 +8,7 @@ open System.Net
 open System.Net.Sockets
 open System.Text
 open System.IO
+open System.Text.RegularExpressions
 open System.Threading
 
 //-------------------------------------------------------------------------------
@@ -17,6 +18,11 @@ open System.Threading
 /// Number of milliseconds each player is allowed in total to make all their moves.
 [<Literal>]
 let InitialTime = 120000.0 
+
+
+/// Minimum time in milliseconds between state updates sent to observer / clients.
+[<Literal>]
+let ThrottleTime = 2.5
 
 //-------------------------------------------------------------------------------
 // TYPES & UTILITY FUNCS
@@ -32,6 +38,53 @@ type Outcome =
 let writeTo (writer: StreamWriter) (message: string) = 
     writer.WriteLine(message)
     writer.Flush()
+
+
+/// Observer utilities for translating to websocket.
+/// Based on https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API/Writing_WebSocket_server
+let handshakeWs (client: TcpClient) (stream: NetworkStream) = 
+    while not stream.DataAvailable do 
+        ()
+    while client.Available < 3 do 
+        () 
+    let buffer = Array.zeroCreate client.Available
+    stream.Read(buffer, 0, buffer.Length) |> ignore
+    let data = Encoding.UTF8.GetString(buffer)
+    if Regex.IsMatch(data, "^GET") then 
+        let eol = "\r\n"
+        let response = Encoding.UTF8.GetBytes(
+            "HTTP/1.1 101 Switching Protocols" + eol + 
+            "Connection: Upgrade" + eol + 
+            "Upgrade: websocket" + eol + 
+            "Sec-Websocket-Accept: " + Convert.ToBase64String(
+                Security.Cryptography.SHA1.Create().ComputeHash(
+                    Encoding.UTF8.GetBytes(
+                        Regex("Sec-WebSocket-Key: (.*)").Match(data).Groups[1].Value.Trim() + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
+                    )
+                )
+            ) + eol + eol)
+        stream.Write(response, 0, response.Length)
+
+let sendWsMessage (client: TcpClient) (stream: NetworkStream) (message: string) = 
+    let bytesRaw = Encoding.UTF8.GetBytes(message)
+    let bytesFormatted = Array.zeroCreate (bytesRaw.Length + 8)
+    bytesFormatted[0] <- byte 129
+    let mutable indexStartRawData = 2
+    if bytesRaw.Length <= 125 then 
+        bytesFormatted[1] <- byte bytesRaw.Length
+    else if bytesRaw.Length >= 126 && bytesRaw.Length <= 65535 then 
+        bytesFormatted[1] <- byte 126
+        bytesFormatted[2] <- byte ((bytesRaw.Length >>> 8) &&& 255)
+        bytesFormatted[3] <- byte (bytesRaw.Length &&& 255)
+        indexStartRawData <- 4
+    else 
+        failwith "Message too big (exceeds 65535 bytes) for observer."
+    for i in 0 .. bytesRaw.Length - 1 do
+        bytesFormatted[i + indexStartRawData] <- bytesRaw[i] 
+    stream.Write(bytesFormatted, 0, bytesRaw.Length + indexStartRawData)
+    stream.Flush()
+
+
 
 //-------------------------------------------------------------------------------
 // MAIN SERVER
@@ -63,10 +116,11 @@ type Server(port: int, config: Game.Config) =
         let mutable game = Game.newGame config
         log $"[INIT] Initialized game with config [{Game.Serialization.encodeConfig config}]."
     
+
         // Accept socket connections in order of observer, hunter, prey.
         let observerHandle = listener.AcceptTcpClient()
         let observerStream = observerHandle.GetStream()
-        let observerWriter = new StreamWriter(observerStream, new UTF8Encoding(false))
+        handshakeWs observerHandle observerStream
         log $"[CONN] Observer connected from {observerHandle.Client.RemoteEndPoint}"
 
         let hunterHandle = listener.AcceptTcpClient()
@@ -84,11 +138,14 @@ type Server(port: int, config: Game.Config) =
         log $"[CONN] Prey [{preyName}] connected from {preyHandle.Client.RemoteEndPoint}"
 
         // Send the observer the initial names, configuration and game state
-        writeTo observerWriter hunterName
+        // writeTo observerWriter hunterName
+        sendWsMessage observerHandle observerStream hunterName
         Thread.Sleep(10)
-        writeTo observerWriter preyName
+        // writeTo observerWriter preyName
+        sendWsMessage observerHandle observerStream preyName
         Thread.Sleep(10)
-        writeTo observerWriter $"{Game.Serialization.encodeConfig config} {Game.Serialization.encodeGame game}"
+        // writeTo observerWriter $"{Game.Serialization.encodeConfig config} {Game.Serialization.encodeGame game}"
+        sendWsMessage observerHandle observerStream $"{Game.Serialization.encodeConfig config} {Game.Serialization.encodeGame game}"
         Thread.Sleep(10)
         log $"[SEND] Game configuration and game state sent to observer."
 
@@ -169,7 +226,8 @@ type Server(port: int, config: Game.Config) =
             try preyActionStringAsync.Wait(preyCt) with 
                 | :? OperationCanceledException -> 
                     log $"[TIME] Prey timed out. The game has now concluded."
-                    writeTo observerWriter $"timeout %.2f{hunterTimeRemaining} %.2f{preyTimeRemaining} {Serialization.encodeGame game}"
+                    // writeTo observerWriter $"timeout %.2f{hunterTimeRemaining} %.2f{preyTimeRemaining} {Serialization.encodeGame game}"
+                    sendWsMessage observerHandle observerStream $"timeout %.2f{hunterTimeRemaining} %.2f{preyTimeRemaining} {Serialization.encodeGame game}"
                     stop <- true
                     outcome <- PreyTimedOut(At = game.Ticker)
                     preyTimeRemaining <- 0.0
@@ -184,13 +242,13 @@ type Server(port: int, config: Game.Config) =
                 let hunterAction = 
                     try Serialization.decodeHunterAction hunterActionString with
                     | e -> 
-                        log $"[INFO] Invalid hunter action string {hunterActionString}. Ignoring hunter action."
+                        logRed $"[HBUG] Invalid hunter action string {hunterActionString}. Ignoring hunter action."
                         Game.HunterNoAction
 
                 let preyAction = 
                     try Serialization.decodePreyAction preyActionString with 
                     | e -> 
-                        log $"[INFO] Invalid prey action string {preyActionString}. Ignoring prey action."
+                        logRed $"[PBUG] Invalid prey action string {preyActionString}. Ignoring prey action."
                         Game.PreyNoAction
 
                 // Check time for a single step for debugging
@@ -203,26 +261,29 @@ type Server(port: int, config: Game.Config) =
                 let stepTimeTaken = (iterationEnd - stepStart).TotalMilliseconds
                 let iterationTimeTaken = (iterationEnd - iterationStart).TotalMilliseconds
 
-                log $"[INFO] Iteration time {iterationTimeTaken}ms. Step time {stepTimeTaken}ms."
+                // log $"[INFO] Iteration time {iterationTimeTaken}ms. Step time {stepTimeTaken}ms."
 
                 // Check if prey is caught or if game continues
                 match stepped with 
                 | Game.Continues steppedGame -> 
                     game <- steppedGame
-                    writeTo observerWriter $"continues %.2f{hunterTimeRemaining} %.2f{preyTimeRemaining} {Serialization.encodeGame game}"
+                    // writeTo observerWriter $"continues %.2f{hunterTimeRemaining} %.2f{preyTimeRemaining} {Serialization.encodeGame game}"
+                    sendWsMessage observerHandle observerStream $"continues %.2f{hunterTimeRemaining} %.2f{preyTimeRemaining} {Serialization.encodeGame game}"
                     // Don't update the frame any faster than 100fps
-                    if iterationTimeTaken < 10.0 then 
-                        Thread.Sleep(int <| Math.Round(10.0 - iterationTimeTaken))
+                    if iterationTimeTaken < ThrottleTime then 
+                        Thread.Sleep(int <| Math.Round(ThrottleTime - iterationTimeTaken))
                 | Game.PreyIsCaught steppedGame -> 
                     game <- steppedGame
-                    writeTo observerWriter $"caught %.2f{hunterTimeRemaining} %.2f{preyTimeRemaining} {Serialization.encodeGame game}"
+                    // writeTo observerWriter $"caught %.2f{hunterTimeRemaining} %.2f{preyTimeRemaining} {Serialization.encodeGame game}"
+                    sendWsMessage observerHandle observerStream $"caught %.2f{hunterTimeRemaining} %.2f{preyTimeRemaining} {Serialization.encodeGame game}"
                     stop <- true 
                     outcome <- PreyIsCaught(At = game.Ticker)
 
             // Prey has timed out: conclude the game
             else
                 log $"[TIME] Prey timed out. The game has now concluded."
-                writeTo observerWriter $"timeout %.2f{hunterTimeRemaining} %.2f{preyTimeRemaining} {Serialization.encodeGame game}"
+                // writeTo observerWriter $"timeout %.2f{hunterTimeRemaining} %.2f{preyTimeRemaining} {Serialization.encodeGame game}"
+                sendWsMessage observerHandle observerStream $"timeout %.2f{hunterTimeRemaining} %.2f{preyTimeRemaining} {Serialization.encodeGame game}"
                 stop <- true
                 outcome <- PreyTimedOut(At = game.Ticker)
 
@@ -238,13 +299,15 @@ type Server(port: int, config: Game.Config) =
         log $"[CLSE] Game has concluded. Shutting down server."
 
         // Write end to all streams
-        writeTo observerWriter $"end"
+        sendWsMessage observerHandle observerStream $"end"
+        // writeTo observerWriter $"end"
         writeTo hunterWriter $"end"
         writeTo preyWriter $"end"
 
     interface IDisposable with 
         member this.Dispose() = 
             listener.Stop()
+            listener.Server.Dispose()
 
 
 [<EntryPoint>]

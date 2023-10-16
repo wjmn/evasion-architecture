@@ -180,8 +180,12 @@ let step (game: State) (hunterAction: HunterAction) (preyAction: PreyAction) : S
             game.PreyVelocity
 
     // Calculate the new prey position
+    // Only move the prey if it is an odd tick
     let (newPreyPosition, newPreyVelocity) =
-        stepAndBounce proposedPreyVelocity walls game.PreyPosition
+        if game.Ticker % 2<s> = 1<s> then 
+            stepAndBounce proposedPreyVelocity walls game.PreyPosition
+        else
+            (game.PreyPosition, proposedPreyVelocity)
 
     // Return the new game state
     { game with

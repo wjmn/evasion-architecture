@@ -1,66 +1,112 @@
 #!/usr/bin/env python3.10
 import sys
 import os
-from socket import socket
+import numpy as np
+import ffmpeg
+from dataclasses import dataclass
+from websockets.sync.client import connect
 
 sys.path.append(os.path.abspath('../../Clients/python'))
 from client import *
 
+@dataclass
+class Observation: 
+    game: GameState
+    hunter_remaining: float
+    prey_remaining: float
+
 class Observer():
     def __init__(self, port=4000):
         """Initialises the client, connects to the server, and receives the initial configuration and game state"""
-        self.socket: socket = socket()
+        self.socket = connect(f"ws://127.0.0.1:{port}")
         self.port: int = port
-
-        # Connect to socket
-        self.socket.connect(("127.0.0.1", port))
+        print(f"Websocket connected to server on port {port}.")
 
         # Read each player's name
-        self.hunter_name = self.readline()
-        self.prey_name = self.readline()
-        print(self.hunter_name)
-        print(self.prey_name)
+        self.hunter_name = self.read()
+        self.prey_name = self.read()
 
         # Read the initial configuration
-        config_string = self.readline()
+        config_string = self.read()
         split = config_string.split()
         self.config = Config(int(split[0]), int(split[1]))
-        self.game = decode_game(" ".join(split[2:]))
-        self.hunter_remaining = 120*1000
-        self.prey_remaining = 120*1000
 
-        print(self.config)
-        self.render()
+        game = decode_game(" ".join(split[2:]))
+        hunter_remaining = 120*1000
+        prey_remaining = 120*1000
+        self.game_stream = [Observation(game, hunter_remaining, prey_remaining)]
+
+        print(f"Observing game between hunter {self.hunter_name} and prey {self.prey_name} with configuration N={self.config.next_wall_time} and M={self.config.max_walls}")
+
 
     def run(self) -> None:
         while True:
-            state = self.readline().split()
+            state = self.read().split()
 
-            print(state)
             discriminator = state[0]
             if discriminator == "end":
-                print("Game ended!")
+                print("Game ended.")
                 break
             elif discriminator == "continues":
-                self.game = decode_game(" ".join(state[3:]))
+                game = decode_game(" ".join(state[3:]))
             elif discriminator == "caught":
-                self.game = decode_game(" ".join(state[3:]))
+                game = decode_game(" ".join(state[3:]))
                 print("Prey is caught!")
             elif discriminator == "timeout":
-                self.game = decode_game(" ".join(state[3:]))
+                game = decode_game(" ".join(state[3:]))
                 print("Prey evaded until timeout!")
-            self.hunter_remaining = float(state[1])
-            self.prey_remaining = float(state[2])
+            hunter_remaining = float(state[1])
+            prey_remaining = float(state[2])
 
-            self.render()
+            if game.ticker % 100 == 0:
+                print(f"Game tick {game.ticker} received.")
+
+            self.game_stream.append(Observation(game, hunter_remaining, prey_remaining))
+
     
-    def readline(self) -> str:
+    def read(self) -> str:
         """Read a message from the server."""
-        return self.socket.makefile().readline().strip()
+        return self.socket.recv().strip()
 
     def render(self) -> None:
-        print(self.game)
+        print(f"Rendering game animation...this may take a while!")
 
+        filename = f"observed_{self.hunter_name}_{self.prey_name}.mp4"
+
+        process = (
+            ffmpeg
+                .input('pipe:', format='rawvideo', pix_fmt='rgb24', s='{}x{}'.format(MAX_WIDTH, MAX_HEIGHT))
+                .output(filename, pix_fmt='yuv420p', vcodec="libx264", r=500)
+                .overwrite_output()
+                .run_async(pipe_stdin=True)
+        )
+
+        for state in self.game_stream:
+            # image with black background
+            image = np.zeros((MAX_HEIGHT, MAX_WIDTH, 3), dtype=np.uint8)
+            image[0, 0:MAX_WIDTH, :] = 255
+            image[MAX_HEIGHT-1, 0:MAX_WIDTH, :] = 255
+            image[0:MAX_HEIGHT, 0, :] = 255
+            image[0:MAX_HEIGHT, MAX_WIDTH-1, :] = 255
+
+            # draw hunter in red
+            image[state.game.hunter_position.y, state.game.hunter_position.x, :] = [255, 0, 0]
+
+            # draw prey in white
+            image[state.game.prey_position.y, state.game.prey_position.x, :] = [255, 255, 255]
+
+            # draw walls in white
+            for wall in state.game.walls:
+                if wall.x1 == wall.x2:
+                    image[wall.y1:wall.y2, wall.x1, :] = 255
+                elif wall.y1 == wall.y2:
+                    image[wall.y1, wall.x1:wall.x2, :] = 255
+
+            process.stdin.write(image.astype(np.uint8).tobytes())
+
+        print(f"Processed all frames, saving to {filename}...")
+        process.stdin.close()
+        process.wait()
 
 
 # -------------------------------------------------------------------------------
@@ -75,5 +121,6 @@ if __name__ == '__main__':
 
     observer = Observer(port)
     observer.run()
+    observer.render()
 
 
