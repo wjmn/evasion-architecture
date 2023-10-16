@@ -8,16 +8,7 @@ from dataclasses import dataclass
 from typing import NamedTuple
 from enum import Enum
 
-# -------------------------------------------------------------------------------
-# INSTRUCTIONS 
-# -------------------------------------------------------------------------------
 
-"""
-TODO list for your team if you wish to use this client:
-1. Change self.team_name in the Client class to your team name
-2. Implement the calculate_hunter_move function in the Client class
-3. Implement the calculate_prey_move function in the Client class
-"""
 
 # -------------------------------------------------------------------------------
 # CONSTANTS
@@ -183,39 +174,11 @@ def decode_game(string: str) -> GameState:
     )
 
 # -------------------------------------------------------------------------------
-# UTILITY FUNCTIONS FOR MOVES
-# -------------------------------------------------------------------------------
-
-def create_wall(wall: Wall) -> str:
-    """Create the string to send to the server to create a wall (hunter only).
-
-    Be very careful with the order of numbers you pass to the Wall constructor!
-    The order is x1, y1, x2, y2. 
-
-    See the Wall NamedTuple documentation for constraints on walls.
-    """
-    return f"create {wall.x1} {wall.y1} {wall.x2} {wall.y2}"
-
-def remove_wall(wall: Wall) -> str:
-    """Create the string to send to the server to remove a wall (hunter only).
-    If this wall does not exist, then it is a no-op.
-    """
-    return f"remove {wall.x1} {wall.y1} {wall.x2} {wall.y2}"
-
-def no_op() -> str:
-    """Create the string to send to the server to do nothing."""
-    return "none"
-
-def change_velocity(velocity: Velocity) -> str:
-    """Create the string to send to the server to change your velocity (prey only)."""
-    return f"change {velocity.x} {velocity.y}"
-
-# -------------------------------------------------------------------------------
 # CLIENT
 # -------------------------------------------------------------------------------
 
 
-class Client:
+class EvasionClient:
     """A basic client for the evasion game server.
 
     Attributes
@@ -232,11 +195,11 @@ class Client:
         The initial configuration of the game (defined by N=NextWallTime and M=MaxWalls)
     """
 
-    def __init__(self, port=4000):
+    def __init__(self, team_name: str, port=4000):
         """Initialises the client, connects to the server, and receives the initial configuration."""
         self.socket: socket = socket()
         self.port: int = port
-        self.team_name: str = "YOUR TEAM NAME HERE"
+        self.team_name: str = team_name
 
         # Connect to socket
         self.socket.connect(("127.0.0.1", port))
@@ -274,67 +237,6 @@ class Client:
                 move = self.calculate_prey_move(game)
                 self.send(move)
 
-    def calculate_hunter_move(self, game: GameState) -> str:
-        """Calculate the next move as the hunter and return the encoded move string.
-
-        Useful variables and functions for you to use:
-        - self.config: contains N and M values
-        - game: contains entire game state at a given tick
-        - create_wall, remove_wall, no_op: functions to create the move string
-        Make sure you return the move string from this function.
-
-        TODO: Fill this in with your code below.
-        At the moment, chooses a move at random (not guaranteed to be valid).
-        """
-
-        # Dummy random player: delete the code below and replace with your player.
-        roll = random.random()
-        if roll <= 0.9:
-            return no_op()
-        elif 0.9 < roll <= 0.945:
-            if len(game.walls) < self.config.max_walls and (game.hunter_last_wall_time is None or game.ticker >= game.hunter_last_wall_time + self.config.next_wall_time):
-                x = game.hunter_position.x
-                y1 = random.randint(0, game.hunter_position.y)
-                y2 = random.randint(game.hunter_position.y, MAX_HEIGHT)
-                return create_wall(Wall(x, y1, x, y2))
-            else:
-                return no_op()
-        elif 0.945 < roll <= 0.99: 
-            if len(game.walls) < self.config.max_walls and (game.hunter_last_wall_time is None or game.ticker >= game.hunter_last_wall_time + self.config.next_wall_time):
-                y = game.hunter_position.y
-                x1 = random.randint(0, game.hunter_position.x)
-                x2 = random.randint(game.hunter_position.x, MAX_WIDTH)
-                return create_wall(Wall(x1, y, x2, y))
-            else:
-                return no_op()
-        else:
-            if len(game.walls) > 0:
-                return remove_wall(random.choice(game.walls))
-            else:
-                return no_op()
-
-    def calculate_prey_move(self, game: GameState) -> str:
-        """Calculate the next move as the prey and return the encoded move string.
-
-        Useful variables and functions for you to use:
-        - self.config: contains N and M values
-        - game: contains entire game state at a given tick
-        - change_velocity, no_op: functions to create the move string
-        Make sure you return the move string from this function.
-
-        TODO: Fill this in with your code below.
-        At the moment, chooses a move at random (not guaranteed to be valid).
-        """
-
-        # Dummy random player: delete the code below and replace with your player.
-        roll = random.random()
-        if roll <= 0.8:
-            return no_op()
-        else:
-            x = random.randint(-1, 1)
-            y = random.randint(-1, 1)
-            return change_velocity(Velocity(x, y))
-
     def send(self, message: str) -> None:
         """Send a string to the server, ensuring the message is terminated with a newline."""
         print(f"Sending: {message}")
@@ -344,16 +246,35 @@ class Client:
         """Read a message from the server."""
         return self.socket.recv(1024).decode("utf-8").strip()
 
-# -------------------------------------------------------------------------------
-# MAIN
-# -------------------------------------------------------------------------------
+    def move_create_wall(self, wall: Wall) -> str:
+        """Helper to create the string to send to the server to create a wall (hunter only).
 
-if __name__ == '__main__':
-    if len(sys.argv) == 1:
-        port = 4000
-    else:
-        port = int(sys.argv[1])
+        Be very careful with the order of numbers you pass to the Wall constructor!
+        The order is x1, y1, x2, y2. 
 
-    client = Client(port)
-    client.run()
+        See the Wall NamedTuple documentation for constraints on walls.
+        """
+        return f"create {wall.x1} {wall.y1} {wall.x2} {wall.y2}"
+
+    def move_remove_wall(self, wall: Wall) -> str:
+        """Helper to create the string to send to the server to remove a wall (hunter only).
+        If this wall does not exist, then it is a no-op.
+        """
+        return f"remove {wall.x1} {wall.y1} {wall.x2} {wall.y2}"
+
+    def move_no_op(self) -> str:
+        """Helper to create the string to send to the server to do nothing."""
+        return "none"
+
+    def move_change_velocity(self, velocity: Velocity) -> str:
+        """Helper to create the string to send to the server to change your velocity (prey only)."""
+        return f"change {velocity.x} {velocity.y}"
+
+    def calculate_hunter_move(self, game: GameState) -> str:
+        """Calculate the next move as the hunter and return the encoded move string.  """
+        raise NotImplementedError("Please implement your method to calculate moves for the hunter")
+
+    def calculate_prey_move(self, game: GameState) -> str:
+        """Calculate the next move as the prey and return the encoded move string."""
+        raise NotImplementedError("Please implement your method to calculate moves for the prey")
 

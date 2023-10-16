@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>Main</title>
+  <title>EVASION</title>
   <style>body { padding: 0; margin: 0; }</style>
 </head>
 
@@ -5206,8 +5206,8 @@ var $author$project$Main$AwaitingHunterName = {$: 'AwaitingHunterName'};
 var $author$project$Game$dummyGame = {
 	hunterLastWallTime: $elm$core$Maybe$Nothing,
 	hunterPosition: {x: 0, y: 0},
-	hunterVelocity: {x: 0, y: 0},
-	preyPosition: {x: 0, y: 0},
+	hunterVelocity: {x: 1, y: 1},
+	preyPosition: {x: 200, y: 230},
 	preyVelocity: {x: 0, y: 0},
 	ticker: 0,
 	walls: _List_Nil
@@ -5215,9 +5215,9 @@ var $author$project$Game$dummyGame = {
 var $author$project$Main$default = {
 	configuration: {maximumWalls: 0, nextWallTime: 0},
 	game: $author$project$Game$dummyGame,
-	hunterName: '',
+	hunterName: 'HUNTER',
 	hunterTimeRemaining: 0,
-	preyName: '',
+	preyName: 'PREY',
 	preyTimeRemaining: 0,
 	state: $author$project$Main$AwaitingHunterName
 };
@@ -5361,12 +5361,12 @@ var $author$project$Game$decodeGame = function (string) {
 		function (i) {
 			return {
 				x1: A2($author$project$Game$decodeIntAt, splits, 11 + (i * 4)),
-				x2: A2($author$project$Game$decodeIntAt, splits, 12 + (i * 4)),
-				y1: A2($author$project$Game$decodeIntAt, splits, 13 + (i * 4)),
+				x2: A2($author$project$Game$decodeIntAt, splits, 13 + (i * 4)),
+				y1: A2($author$project$Game$decodeIntAt, splits, 12 + (i * 4)),
 				y2: A2($author$project$Game$decodeIntAt, splits, 14 + (i * 4))
 			};
 		},
-		A2($elm$core$List$range, 0, numWalls));
+		A2($elm$core$List$range, 0, numWalls - 1));
 	var hunterVelocity = {
 		x: A2($author$project$Game$decodeIntAt, splits, 3),
 		y: A2($author$project$Game$decodeIntAt, splits, 4)
@@ -5690,7 +5690,7 @@ var $author$project$Game$decodeLoopState = function (string) {
 								1,
 								$elm$core$Array$length(splits),
 								splits)))));
-		case 'preyIsCaught':
+		case 'caught':
 			return $author$project$Game$PreyIsCaught(
 				$author$project$Game$decodeGameAndTimeRemaining(
 					A2(
@@ -5702,7 +5702,7 @@ var $author$project$Game$decodeLoopState = function (string) {
 								1,
 								$elm$core$Array$length(splits),
 								splits)))));
-		case 'preyTimeout':
+		case 'timeout':
 			return $author$project$Game$PreyTimeout(
 				$author$project$Game$decodeGameAndTimeRemaining(
 					A2(
@@ -5785,9 +5785,6 @@ var $author$project$Main$update = F2(
 			}
 		}
 	});
-var $elm$html$Html$div = _VirtualDom_node('div');
-var $elm$html$Html$h1 = _VirtualDom_node('h1');
-var $elm$html$Html$img = _VirtualDom_node('img');
 var $elm$json$Json$Encode$string = _Json_wrap;
 var $elm$html$Html$Attributes$stringProperty = F2(
 	function (key, string) {
@@ -5796,33 +5793,789 @@ var $elm$html$Html$Attributes$stringProperty = F2(
 			key,
 			$elm$json$Json$Encode$string(string));
 	});
+var $elm$html$Html$Attributes$class = $elm$html$Html$Attributes$stringProperty('className');
+var $elm$html$Html$div = _VirtualDom_node('div');
+var $author$project$Main$dotWidth = 0.33;
+var $elm$core$String$fromFloat = _String_fromNumber;
+var $author$project$Main$hunterDecoratorWidth = 2;
+var $elm$html$Html$img = _VirtualDom_node('img');
+var $author$project$Main$isCaught = function (state) {
+	if (state.$ === 'FinishedCaught') {
+		return true;
+	} else {
+		return false;
+	}
+};
+var $author$project$Main$isTimeout = function (state) {
+	if (state.$ === 'FinishedTimeout') {
+		return true;
+	} else {
+		return false;
+	}
+};
+var $elm$core$Maybe$map = F2(
+	function (f, maybe) {
+		if (maybe.$ === 'Just') {
+			var value = maybe.a;
+			return $elm$core$Maybe$Just(
+				f(value));
+		} else {
+			return $elm$core$Maybe$Nothing;
+		}
+	});
+var $author$project$Main$pct = function (value) {
+	return $elm$core$String$fromFloat(value) + '%';
+};
+var $author$project$Main$preyDecorationWidth = 0.67;
 var $elm$html$Html$Attributes$src = function (url) {
 	return A2(
 		$elm$html$Html$Attributes$stringProperty,
 		'src',
 		_VirtualDom_noJavaScriptOrHtmlUri(url));
 };
+var $elm$virtual_dom$VirtualDom$style = _VirtualDom_style;
+var $elm$html$Html$Attributes$style = $elm$virtual_dom$VirtualDom$style;
 var $elm$virtual_dom$VirtualDom$text = _VirtualDom_text;
 var $elm$html$Html$text = $elm$virtual_dom$VirtualDom$text;
-var $author$project$Main$view = function (model) {
-	return A2(
+var $author$project$Game$maxWidth = 300;
+var $author$project$Main$toLeftValue = F2(
+	function (x, iconWidth) {
+		return ((x / $author$project$Game$maxWidth) * 100.0) - (iconWidth / 2);
+	});
+var $author$project$Game$maxHeight = 300;
+var $author$project$Main$toTopValue = F2(
+	function (y, iconWidth) {
+		return ((y / $author$project$Game$maxHeight) * 100.0) - (iconWidth / 2);
+	});
+var $elm$core$List$filter = F2(
+	function (isGood, list) {
+		return A3(
+			$elm$core$List$foldr,
+			F2(
+				function (x, xs) {
+					return isGood(x) ? A2($elm$core$List$cons, x, xs) : xs;
+				}),
+			_List_Nil,
+			list);
+	});
+var $elm$core$Tuple$second = function (_v0) {
+	var y = _v0.b;
+	return y;
+};
+var $elm$html$Html$Attributes$classList = function (classes) {
+	return $elm$html$Html$Attributes$class(
+		A2(
+			$elm$core$String$join,
+			' ',
+			A2(
+				$elm$core$List$map,
+				$elm$core$Tuple$first,
+				A2($elm$core$List$filter, $elm$core$Tuple$second, classes))));
+};
+var $author$project$Main$tw = function (classes) {
+	return $elm$html$Html$Attributes$classList(
+		_List_fromArray(
+			[
+				_Utils_Tuple2(classes, true)
+			]));
+};
+var $author$project$Main$twIf = F2(
+	function (bool, classes) {
+		return $elm$html$Html$Attributes$classList(
+			_List_fromArray(
+				[
+					_Utils_Tuple2(classes, bool)
+				]));
+	});
+var $author$project$Main$wallWidth = 0.33;
+var $author$project$Main$viewWall = function (wall) {
+	return _Utils_eq(wall.x1, wall.x2) ? A2(
 		$elm$html$Html$div,
-		_List_Nil,
 		_List_fromArray(
 			[
 				A2(
-				$elm$html$Html$img,
-				_List_fromArray(
-					[
-						$elm$html$Html$Attributes$src('/logo.svg')
-					]),
-				_List_Nil),
+				$elm$html$Html$Attributes$style,
+				'left',
+				$author$project$Main$pct(
+					A2($author$project$Main$toLeftValue, wall.x1, $author$project$Main$wallWidth))),
 				A2(
-				$elm$html$Html$h1,
-				_List_Nil,
+				$elm$html$Html$Attributes$style,
+				'top',
+				$author$project$Main$pct(
+					A2($author$project$Main$toTopValue, wall.y1, $author$project$Main$wallWidth))),
+				A2(
+				$elm$html$Html$Attributes$style,
+				'height',
+				$author$project$Main$pct(
+					A2($author$project$Main$toTopValue, wall.y2, $author$project$Main$wallWidth) - A2($author$project$Main$toTopValue, wall.y1, $author$project$Main$wallWidth))),
+				A2(
+				$elm$html$Html$Attributes$style,
+				'width',
+				$author$project$Main$pct($author$project$Main$wallWidth)),
+				$author$project$Main$tw('absolute wall border-l')
+			]),
+		_List_Nil) : A2(
+		$elm$html$Html$div,
+		_List_fromArray(
+			[
+				A2(
+				$elm$html$Html$Attributes$style,
+				'left',
+				$author$project$Main$pct(
+					A2($author$project$Main$toLeftValue, wall.x1, $author$project$Main$wallWidth))),
+				A2(
+				$elm$html$Html$Attributes$style,
+				'top',
+				$author$project$Main$pct(
+					A2($author$project$Main$toTopValue, wall.y1, $author$project$Main$wallWidth))),
+				A2(
+				$elm$html$Html$Attributes$style,
+				'width',
+				$author$project$Main$pct(
+					A2($author$project$Main$toLeftValue, wall.x2, $author$project$Main$wallWidth) - A2($author$project$Main$toLeftValue, wall.x1, $author$project$Main$wallWidth))),
+				A2(
+				$elm$html$Html$Attributes$style,
+				'height',
+				$author$project$Main$pct($author$project$Main$wallWidth)),
+				$author$project$Main$tw('absolute wall border-t')
+			]),
+		_List_Nil);
+};
+var $author$project$Main$view = function (model) {
+	return A2(
+		$elm$html$Html$div,
+		_List_fromArray(
+			[
+				$author$project$Main$tw('bg-black h-screen flex justify-center items-center text-white p-4')
+			]),
+		_List_fromArray(
+			[
+				A2(
+				$elm$html$Html$div,
 				_List_fromArray(
 					[
-						$elm$html$Html$text('Your Elm App is working!')
+						$author$project$Main$tw('flex justify-center')
+					]),
+				_List_fromArray(
+					[
+						A2(
+						$elm$html$Html$div,
+						_List_fromArray(
+							[
+								$author$project$Main$tw('h-full flex justify-center items-center mr-8')
+							]),
+						_List_fromArray(
+							[
+								A2(
+								$elm$html$Html$div,
+								_List_fromArray(
+									[
+										$author$project$Main$tw('border-white border-2 p-1')
+									]),
+								_List_fromArray(
+									[
+										A2(
+										$elm$html$Html$div,
+										_List_fromArray(
+											[
+												A2($elm$html$Html$Attributes$style, 'height', '90vh'),
+												A2($elm$html$Html$Attributes$style, 'width', '90vh'),
+												$author$project$Main$tw('relative overflow-hidden')
+											]),
+										_List_fromArray(
+											[
+												A2(
+												$elm$html$Html$div,
+												_List_Nil,
+												A2($elm$core$List$map, $author$project$Main$viewWall, model.game.walls)),
+												A2(
+												$elm$html$Html$div,
+												_List_fromArray(
+													[
+														A2(
+														$elm$html$Html$Attributes$style,
+														'left',
+														$author$project$Main$pct(
+															A2($author$project$Main$toLeftValue, model.game.preyPosition.x, $author$project$Main$dotWidth))),
+														A2(
+														$elm$html$Html$Attributes$style,
+														'top',
+														$author$project$Main$pct(
+															A2($author$project$Main$toTopValue, model.game.preyPosition.y, $author$project$Main$dotWidth))),
+														A2(
+														$elm$html$Html$Attributes$style,
+														'width',
+														$author$project$Main$pct($author$project$Main$dotWidth)),
+														A2(
+														$elm$html$Html$Attributes$style,
+														'height',
+														$author$project$Main$pct($author$project$Main$dotWidth)),
+														$author$project$Main$tw('absolute bg-white rounded-full'),
+														$elm$html$Html$Attributes$class('prey-indicator')
+													]),
+												_List_Nil),
+												A2(
+												$elm$html$Html$div,
+												_List_fromArray(
+													[
+														A2(
+														$elm$html$Html$Attributes$style,
+														'left',
+														$author$project$Main$pct(
+															A2($author$project$Main$toLeftValue, model.game.preyPosition.x, $author$project$Main$preyDecorationWidth))),
+														A2(
+														$elm$html$Html$Attributes$style,
+														'top',
+														$author$project$Main$pct(
+															A2($author$project$Main$toTopValue, model.game.preyPosition.y, $author$project$Main$preyDecorationWidth))),
+														A2(
+														$elm$html$Html$Attributes$style,
+														'width',
+														$author$project$Main$pct($author$project$Main$preyDecorationWidth)),
+														A2(
+														$elm$html$Html$Attributes$style,
+														'height',
+														$author$project$Main$pct($author$project$Main$preyDecorationWidth)),
+														$author$project$Main$tw('absolute bg-white rounded-full'),
+														$elm$html$Html$Attributes$class('prey-decorator')
+													]),
+												_List_Nil),
+												A2(
+												$elm$html$Html$div,
+												_List_fromArray(
+													[
+														A2(
+														$elm$html$Html$Attributes$style,
+														'left',
+														$author$project$Main$pct(
+															A2($author$project$Main$toLeftValue, model.game.hunterPosition.x, $author$project$Main$dotWidth))),
+														A2(
+														$elm$html$Html$Attributes$style,
+														'top',
+														$author$project$Main$pct(
+															A2($author$project$Main$toTopValue, model.game.hunterPosition.y, $author$project$Main$dotWidth))),
+														A2(
+														$elm$html$Html$Attributes$style,
+														'width',
+														$author$project$Main$pct($author$project$Main$dotWidth)),
+														A2(
+														$elm$html$Html$Attributes$style,
+														'height',
+														$author$project$Main$pct($author$project$Main$dotWidth)),
+														$author$project$Main$tw('absolute'),
+														$elm$html$Html$Attributes$class('hunter-indicator')
+													]),
+												_List_Nil),
+												A2(
+												$elm$html$Html$div,
+												_List_fromArray(
+													[
+														A2(
+														$elm$html$Html$Attributes$style,
+														'left',
+														$author$project$Main$pct(
+															A2($author$project$Main$toLeftValue, model.game.hunterPosition.x, $author$project$Main$hunterDecoratorWidth))),
+														A2(
+														$elm$html$Html$Attributes$style,
+														'top',
+														$author$project$Main$pct(
+															A2($author$project$Main$toTopValue, model.game.hunterPosition.y, $author$project$Main$hunterDecoratorWidth))),
+														A2(
+														$elm$html$Html$Attributes$style,
+														'width',
+														$author$project$Main$pct($author$project$Main$hunterDecoratorWidth)),
+														A2(
+														$elm$html$Html$Attributes$style,
+														'height',
+														$author$project$Main$pct($author$project$Main$hunterDecoratorWidth)),
+														$author$project$Main$tw('absolute border-2 border-red-500'),
+														$elm$html$Html$Attributes$class('hunter-decorator-red')
+													]),
+												_List_Nil),
+												A2(
+												$elm$html$Html$div,
+												_List_fromArray(
+													[
+														A2(
+														$elm$html$Html$Attributes$style,
+														'left',
+														$author$project$Main$pct(
+															A2($author$project$Main$toLeftValue, model.game.hunterPosition.x, $author$project$Main$hunterDecoratorWidth))),
+														A2(
+														$elm$html$Html$Attributes$style,
+														'top',
+														$author$project$Main$pct(
+															A2($author$project$Main$toTopValue, model.game.hunterPosition.y, $author$project$Main$hunterDecoratorWidth))),
+														A2(
+														$elm$html$Html$Attributes$style,
+														'width',
+														$author$project$Main$pct($author$project$Main$hunterDecoratorWidth)),
+														A2(
+														$elm$html$Html$Attributes$style,
+														'height',
+														$author$project$Main$pct($author$project$Main$hunterDecoratorWidth)),
+														$author$project$Main$tw('absolute border-2 border-cyan-500'),
+														$elm$html$Html$Attributes$class('hunter-decorator-blue')
+													]),
+												_List_Nil)
+											]))
+									]))
+							])),
+						A2(
+						$elm$html$Html$div,
+						_List_fromArray(
+							[
+								$author$project$Main$tw('border-white flex flex-col w-96 justify-between')
+							]),
+						_List_fromArray(
+							[
+								A2(
+								$elm$html$Html$div,
+								_List_fromArray(
+									[
+										$author$project$Main$tw('w-full border-2 border-white flex items-center flex-col text-center p-4')
+									]),
+								_List_fromArray(
+									[
+										A2(
+										$elm$html$Html$img,
+										_List_fromArray(
+											[
+												$elm$html$Html$Attributes$src('hunter.png'),
+												$author$project$Main$tw('w-56')
+											]),
+										_List_Nil),
+										A2(
+										$elm$html$Html$div,
+										_List_fromArray(
+											[
+												$author$project$Main$tw('flex flex-col items-center')
+											]),
+										_List_fromArray(
+											[
+												A2(
+												$elm$html$Html$div,
+												_List_fromArray(
+													[
+														$author$project$Main$tw('font-bold text-xl')
+													]),
+												_List_fromArray(
+													[
+														$elm$html$Html$text(model.hunterName)
+													])),
+												A2(
+												$elm$html$Html$div,
+												_List_fromArray(
+													[
+														$author$project$Main$tw('mb-2')
+													]),
+												_List_fromArray(
+													[
+														$elm$html$Html$text(
+														$elm$core$String$fromFloat(model.hunterTimeRemaining) + 'ms remaining.')
+													])),
+												A2(
+												$elm$html$Html$div,
+												_List_fromArray(
+													[
+														$author$project$Main$tw('w-48 flex text-sm justify-between')
+													]),
+												_List_fromArray(
+													[
+														A2(
+														$elm$html$Html$div,
+														_List_fromArray(
+															[
+																$author$project$Main$tw('text-left w-24 mr-8')
+															]),
+														_List_fromArray(
+															[
+																$elm$html$Html$text('Location: ')
+															])),
+														A2(
+														$elm$html$Html$div,
+														_List_fromArray(
+															[
+																$author$project$Main$tw('flex')
+															]),
+														_List_fromArray(
+															[
+																A2(
+																$elm$html$Html$div,
+																_List_fromArray(
+																	[
+																		$author$project$Main$tw('w-6 text-right')
+																	]),
+																_List_fromArray(
+																	[
+																		$elm$html$Html$text(
+																		$elm$core$String$fromInt(model.game.hunterPosition.x))
+																	])),
+																A2(
+																$elm$html$Html$div,
+																_List_Nil,
+																_List_fromArray(
+																	[
+																		$elm$html$Html$text(',')
+																	])),
+																A2(
+																$elm$html$Html$div,
+																_List_fromArray(
+																	[
+																		$author$project$Main$tw('w-6 text-right')
+																	]),
+																_List_fromArray(
+																	[
+																		$elm$html$Html$text(
+																		$elm$core$String$fromInt(model.game.hunterPosition.y))
+																	]))
+															]))
+													])),
+												A2(
+												$elm$html$Html$div,
+												_List_fromArray(
+													[
+														$author$project$Main$tw('w-48 flex text-sm justify-between')
+													]),
+												_List_fromArray(
+													[
+														A2(
+														$elm$html$Html$div,
+														_List_fromArray(
+															[
+																$author$project$Main$tw('text-left w-24 mr-8')
+															]),
+														_List_fromArray(
+															[
+																$elm$html$Html$text('Velocity:')
+															])),
+														A2(
+														$elm$html$Html$div,
+														_List_fromArray(
+															[
+																$author$project$Main$tw('flex')
+															]),
+														_List_fromArray(
+															[
+																A2(
+																$elm$html$Html$div,
+																_List_fromArray(
+																	[
+																		$author$project$Main$tw('w-6 text-right')
+																	]),
+																_List_fromArray(
+																	[
+																		$elm$html$Html$text(
+																		$elm$core$String$fromInt(model.game.hunterVelocity.x))
+																	])),
+																A2(
+																$elm$html$Html$div,
+																_List_Nil,
+																_List_fromArray(
+																	[
+																		$elm$html$Html$text(',')
+																	])),
+																A2(
+																$elm$html$Html$div,
+																_List_fromArray(
+																	[
+																		$author$project$Main$tw('w-6 text-right')
+																	]),
+																_List_fromArray(
+																	[
+																		$elm$html$Html$text(
+																		$elm$core$String$fromInt(model.game.hunterVelocity.y))
+																	]))
+															]))
+													])),
+												A2(
+												$elm$html$Html$div,
+												_List_fromArray(
+													[
+														$author$project$Main$tw('w-48 flex text-sm justify-between')
+													]),
+												_List_fromArray(
+													[
+														A2(
+														$elm$html$Html$div,
+														_List_fromArray(
+															[
+																$author$project$Main$tw('w-24 text-left mr-8')
+															]),
+														_List_fromArray(
+															[
+																$elm$html$Html$text('Walls: ')
+															])),
+														A2(
+														$elm$html$Html$div,
+														_List_fromArray(
+															[
+																$author$project$Main$tw('text-right')
+															]),
+														_List_fromArray(
+															[
+																$elm$html$Html$text(
+																$elm$core$String$fromInt(
+																	$elm$core$List$length(model.game.walls)))
+															]))
+													])),
+												A2(
+												$elm$html$Html$div,
+												_List_fromArray(
+													[
+														$author$project$Main$tw('w-48 flex text-sm justify-between')
+													]),
+												_List_fromArray(
+													[
+														A2(
+														$elm$html$Html$div,
+														_List_fromArray(
+															[
+																$author$project$Main$tw('w-24 text-left mr-8')
+															]),
+														_List_fromArray(
+															[
+																$elm$html$Html$text('Last wall: ')
+															])),
+														A2(
+														$elm$html$Html$div,
+														_List_fromArray(
+															[
+																$author$project$Main$tw('text-right ')
+															]),
+														_List_fromArray(
+															[
+																$elm$html$Html$text(
+																A2(
+																	$elm$core$Maybe$withDefault,
+																	'None',
+																	A2($elm$core$Maybe$map, $elm$core$String$fromInt, model.game.hunterLastWallTime)))
+															]))
+													]))
+											]))
+									])),
+								A2(
+								$elm$html$Html$div,
+								_List_fromArray(
+									[
+										$author$project$Main$tw('grow flex justify-center items-center flex-col')
+									]),
+								_List_fromArray(
+									[
+										A2(
+										$elm$html$Html$div,
+										_List_fromArray(
+											[
+												$author$project$Main$tw('w-full text-center flex items-center justify-center flex-col mb-2')
+											]),
+										_List_fromArray(
+											[
+												A2(
+												$elm$html$Html$div,
+												_List_fromArray(
+													[
+														$author$project$Main$tw('text-sm'),
+														A2($elm$html$Html$Attributes$style, 'font-variant', 'small-caps')
+													]),
+												_List_fromArray(
+													[
+														$elm$html$Html$text('game ticks')
+													])),
+												A2(
+												$elm$html$Html$div,
+												_List_fromArray(
+													[
+														$author$project$Main$tw('text-4xl font-bold'),
+														A2(
+														$author$project$Main$twIf,
+														$author$project$Main$isCaught(model.state),
+														'text-red-500'),
+														A2(
+														$author$project$Main$twIf,
+														$author$project$Main$isTimeout(model.state),
+														'text-green-500')
+													]),
+												_List_fromArray(
+													[
+														$elm$html$Html$text(
+														$elm$core$String$fromInt(model.game.ticker))
+													]))
+											])),
+										A2(
+										$elm$html$Html$div,
+										_List_fromArray(
+											[
+												$author$project$Main$tw('text-xs text-center'),
+												A2($elm$html$Html$Attributes$style, 'font-variant', 'small-caps')
+											]),
+										_List_fromArray(
+											[
+												$elm$html$Html$text(
+												'N=' + ($elm$core$String$fromInt(model.configuration.nextWallTime) + (' & M=' + $elm$core$String$fromInt(model.configuration.maximumWalls))))
+											]))
+									])),
+								A2(
+								$elm$html$Html$div,
+								_List_fromArray(
+									[
+										$author$project$Main$tw('w-full border-2 border-white flex items-center flex-col text-center p-4')
+									]),
+								_List_fromArray(
+									[
+										A2(
+										$elm$html$Html$img,
+										_List_fromArray(
+											[
+												$elm$html$Html$Attributes$src('prey.png'),
+												$author$project$Main$tw('w-56')
+											]),
+										_List_Nil),
+										A2(
+										$elm$html$Html$div,
+										_List_fromArray(
+											[
+												$author$project$Main$tw('flex flex-col items-center')
+											]),
+										_List_fromArray(
+											[
+												A2(
+												$elm$html$Html$div,
+												_List_fromArray(
+													[
+														$author$project$Main$tw('font-bold text-xl')
+													]),
+												_List_fromArray(
+													[
+														$elm$html$Html$text(model.preyName)
+													])),
+												A2(
+												$elm$html$Html$div,
+												_List_fromArray(
+													[
+														$author$project$Main$tw('mb-2')
+													]),
+												_List_fromArray(
+													[
+														$elm$html$Html$text(
+														$elm$core$String$fromFloat(model.preyTimeRemaining) + 'ms remaining.')
+													])),
+												A2(
+												$elm$html$Html$div,
+												_List_fromArray(
+													[
+														$author$project$Main$tw('w-48 flex text-sm justify-between')
+													]),
+												_List_fromArray(
+													[
+														A2(
+														$elm$html$Html$div,
+														_List_fromArray(
+															[
+																$author$project$Main$tw('text-left w-24 mr-8')
+															]),
+														_List_fromArray(
+															[
+																$elm$html$Html$text('Location: ')
+															])),
+														A2(
+														$elm$html$Html$div,
+														_List_fromArray(
+															[
+																$author$project$Main$tw('flex')
+															]),
+														_List_fromArray(
+															[
+																A2(
+																$elm$html$Html$div,
+																_List_fromArray(
+																	[
+																		$author$project$Main$tw('w-6 text-right')
+																	]),
+																_List_fromArray(
+																	[
+																		$elm$html$Html$text(
+																		$elm$core$String$fromInt(model.game.preyPosition.x))
+																	])),
+																A2(
+																$elm$html$Html$div,
+																_List_Nil,
+																_List_fromArray(
+																	[
+																		$elm$html$Html$text(',')
+																	])),
+																A2(
+																$elm$html$Html$div,
+																_List_fromArray(
+																	[
+																		$author$project$Main$tw('w-6 text-right')
+																	]),
+																_List_fromArray(
+																	[
+																		$elm$html$Html$text(
+																		$elm$core$String$fromInt(model.game.preyPosition.y))
+																	]))
+															]))
+													])),
+												A2(
+												$elm$html$Html$div,
+												_List_fromArray(
+													[
+														$author$project$Main$tw('w-48 flex text-sm justify-between')
+													]),
+												_List_fromArray(
+													[
+														A2(
+														$elm$html$Html$div,
+														_List_fromArray(
+															[
+																$author$project$Main$tw('text-left w-24 mr-8')
+															]),
+														_List_fromArray(
+															[
+																$elm$html$Html$text('Velocity:')
+															])),
+														A2(
+														$elm$html$Html$div,
+														_List_fromArray(
+															[
+																$author$project$Main$tw('flex')
+															]),
+														_List_fromArray(
+															[
+																A2(
+																$elm$html$Html$div,
+																_List_fromArray(
+																	[
+																		$author$project$Main$tw('w-6 text-right')
+																	]),
+																_List_fromArray(
+																	[
+																		$elm$html$Html$text(
+																		$elm$core$String$fromInt(model.game.preyVelocity.x))
+																	])),
+																A2(
+																$elm$html$Html$div,
+																_List_Nil,
+																_List_fromArray(
+																	[
+																		$elm$html$Html$text(',')
+																	])),
+																A2(
+																$elm$html$Html$div,
+																_List_fromArray(
+																	[
+																		$author$project$Main$tw('w-6 text-right')
+																	]),
+																_List_fromArray(
+																	[
+																		$elm$html$Html$text(
+																		$elm$core$String$fromInt(model.game.preyVelocity.y))
+																	]))
+															]))
+													]))
+											]))
+									]))
+							]))
 					]))
 			]));
 };
@@ -5852,7 +6605,136 @@ catch (e)
   pre.innerText = e;
   throw e;
 }
+
+// Websocket connection
+const websocket = new WebSocket('ws://127.0.0.1:4000');
+
+websocket.onopen = (e) => {
+  console.log("Websocket connected.");
+};
+
+websocket.onmessage = (e) => {
+  console.log(e.data);
+  app.ports.messageReceiver.send(e.data);
+};
+
+websocket.onclose = (e) => {
+  console.log("Websocket closed.");
+};
 </script>
+
+      <script src="https://cdn.tailwindcss.com"></script>
+<style>
+	[data-elm-hot="true"] {
+  height: inherit;
+}
+
+html {
+  font-family: "Iosevka Aile", Iosevka, "Roboto Mono", "Cascadia Code", Consolas, "Fira Code", Menlo, Monaco, ui-monospace, monospace;
+}
+
+@keyframes hunter-indicator {
+  0% {
+    background-color: cyan;
+    transform: scale(1) rotateZ(0deg);
+  }
+  50% {
+    background-color: crimson;
+    transform: scale(2);
+  }
+  100% {
+    background-color: cyan;
+    transform: scale(1) rotateZ(180deg);
+  }
+}
+
+@keyframes hunter-decorator-red {
+  0% {
+    transform:rotateZ(0);
+  }
+  100% {
+    transform:rotateZ(360deg);
+  }
+}
+
+@keyframes hunter-decorator-blue {
+  0% {
+    transform:rotateZ(45deg);
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.76;
+  }
+  100% {
+    transform:rotateZ(-325deg);
+    opacity: 1;
+  }
+}
+
+@keyframes prey-decorator {
+  0% {
+    transform: scale(0);
+  }
+  50% {
+    transform: scale(1);
+  }
+  100% {
+    transform: scale(0);
+  }
+}
+
+@keyframes wall {
+  0% {
+    border-color: cyan;
+    background-color: crimson;
+  }
+  50% {
+    border-color: crimson;
+    background-color: cyan;
+  }
+  100% {
+    border-color: cyan;
+    background-color: crimson;
+  }
+}
+
+
+
+
+.hunter-indicator {
+  animation-name: hunter-indicator;
+  animation-duration: 0.5s;
+  animation-iteration-count: infinite;
+  animation-timing-function: linear;
+}
+
+
+.hunter-decorator-red {
+  animation-name: hunter-decorator-red;
+  animation-duration: 2s;
+  animation-iteration-count: infinite;
+  animation-timing-function: linear;
+}
+.hunter-decorator-blue {
+  animation-name: hunter-decorator-blue;
+  animation-duration: 4s;
+  animation-iteration-count: infinite;
+  animation-timing-function: linear;
+}
+
+.prey-decorator {
+  animation-name: prey-decorator;
+  animation-duration: 1s;
+  animation-iteration-count: infinite;
+}
+
+.wall {
+  animation-name: wall;
+  animation-duration: 1.5s;
+  animation-iteration-count: infinite;
+  animation-timing-function: linear;
+}
+</style>
 
 </body>
 </html>
