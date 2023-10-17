@@ -153,7 +153,6 @@ let wallIsValid (game: State) (wall: Wall) : bool =
 /// Note that:
 /// - Prey actions can only be taken on odd ticks. Actions on even ticks are ignored.
 /// - The order of calculation is create/destroy walls, move the hunter, move the prey.
-/// Signum of velocity is taken in this function.
 let step (game: State) (hunterAction: HunterAction) (preyAction: PreyAction) : State =
 
     // Create and destroy walls
