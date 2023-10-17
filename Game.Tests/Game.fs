@@ -220,7 +220,81 @@ let TestStepGameMiddleRemoveWall () =
             Walls=[Vertical(2<m>, 0<m>, 300<m>)]
         }
 
-    Assert.That(step gameMiddle (RemoveWall(Vertical(1<m>, 0<m>, 300<m>))) PreyNoAction, Is.EqualTo(expected))
+    Assert.That(step gameMiddle (RemoveWalls[(Vertical(1<m>, 0<m>, 300<m>))]) PreyNoAction, Is.EqualTo(expected))
+
+[<Test>]
+let TestStepGameMiddleRemoveMultipleWallsAndCreate () =
+    let gameMiddle =
+        { Config =
+            { NextWallInterval = 5<s>
+              MaxWalls = 3 }
+          Ticker = 30<s>
+          HunterPosition = { X = 31<m>; Y = 31<m> }
+          HunterVelocity = { X = 1<m / s>; Y = 1<m / s> }
+          HunterLastWall = Some(20<s>)
+          PreyPosition = { X = 30<m>; Y = 200<m> }
+          PreyVelocity = { X = (0<m / s>); Y = 0<m / s> }
+          Walls = [Vertical(1<m>, 0<m>, 300<m>); Vertical(2<m>, 0<m>, 300<m>)]}
+
+    let expected =
+        { gameMiddle with
+            Ticker = 31<s>
+            HunterLastWall = Some(30<s>)
+            HunterPosition = { X = 32<m>; Y = 32<m> }
+            Walls=[Horizontal(31<m>, 0<m>, 300<m>)]
+        }
+
+    Assert.That(step gameMiddle (RemoveAndCreate([Vertical(1<m>, 0<m>, 300<m>); Vertical(2<m>, 0<m>, 300<m>)], Horizontal(31<m>, 0<m>, 300<m>))) PreyNoAction, Is.EqualTo(expected))
+
+[<Test>]
+let TestStepGameMiddleRemoveMultipleWallsAndCreateInvalid () =
+    let gameMiddle =
+        { Config =
+            { NextWallInterval = 5<s>
+              MaxWalls = 3 }
+          Ticker = 30<s>
+          HunterPosition = { X = 31<m>; Y = 31<m> }
+          HunterVelocity = { X = 1<m / s>; Y = 1<m / s> }
+          HunterLastWall = Some(20<s>)
+          PreyPosition = { X = 30<m>; Y = 200<m> }
+          PreyVelocity = { X = (0<m / s>); Y = 0<m / s> }
+          Walls = [Vertical(1<m>, 0<m>, 300<m>); Vertical(2<m>, 0<m>, 300<m>)]}
+
+    let expected =
+        { gameMiddle with
+            Ticker = 31<s>
+            HunterPosition = { X = 32<m>; Y = 32<m> }
+            Walls=[]
+        }
+
+    Assert.That(step gameMiddle (RemoveAndCreate([Vertical(1<m>, 0<m>, 300<m>); Vertical(2<m>, 0<m>, 300<m>)], Horizontal(30<m>, 0<m>, 300<m>))) PreyNoAction, Is.EqualTo(expected))
+
+
+
+[<Test>]
+let TestStepGameMiddleRemoveMultipleWalls () =
+    let gameMiddle =
+        { Config =
+            { NextWallInterval = 5<s>
+              MaxWalls = 3 }
+          Ticker = 30<s>
+          HunterPosition = { X = 31<m>; Y = 31<m> }
+          HunterVelocity = { X = 1<m / s>; Y = 1<m / s> }
+          HunterLastWall = Some(20<s>)
+          PreyPosition = { X = 30<m>; Y = 200<m> }
+          PreyVelocity = { X = (0<m / s>); Y = 0<m / s> }
+          Walls = [Vertical(1<m>, 0<m>, 300<m>); Vertical(2<m>, 0<m>, 300<m>)]}
+
+    let expected =
+        { gameMiddle with
+            Ticker = 31<s>
+            HunterPosition = { X = 32<m>; Y = 32<m> }
+            Walls=[]
+        }
+
+    Assert.That(step gameMiddle (RemoveWalls[Vertical(1<m>, 0<m>, 300<m>); Vertical(2<m>, 0<m>, 300<m>)]) PreyNoAction, Is.EqualTo(expected))
+
+
 
 [<Test>]
 let TestStepGameWithinDistanceWithoutWallBetweenHunterAndPrey() =

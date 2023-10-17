@@ -256,11 +256,21 @@ class EvasionClient:
         """
         return f"create {wall.x1} {wall.y1} {wall.x2} {wall.y2}"
 
-    def move_remove_wall(self, wall: Wall) -> str:
-        """Helper to create the string to send to the server to remove a wall (hunter only).
-        If this wall does not exist, then it is a no-op.
+    def move_only_remove_walls(self, walls: list[Wall]) -> str:
+        """Helper to create the string to send to the server to just remove walls (hunter only).
+        If a wall does not exist, then it is a no-op.
         """
-        return f"remove {wall.x1} {wall.y1} {wall.x2} {wall.y2}"
+        return " ".join([f"remove {wall.x1} {wall.y1} {wall.x2} {wall.y2}" for wall in walls])
+
+    def move_remove_walls_and_create(self, to_remove: list[Wall], to_create: Wall | None) -> str:
+        """Helper to create the string to send to the server to remove walls and create a new wall (hunter only).
+        If a wall does not exist, then it is a no-op.
+        """
+        if len(to_remove) == 0: 
+            return self.move_create_wall(to_create)
+        if to_create is None:
+            return self.move_only_remove_walls(to_remove)
+        return " ".join([f"remove {wall.x1} {wall.y1} {wall.x2} {wall.y2}" for wall in to_remove]) + f" create {to_create.x1} {to_create.y1} {to_create.x2} {to_create.y2}"
 
     def move_no_op(self) -> str:
         """Helper to create the string to send to the server to do nothing."""

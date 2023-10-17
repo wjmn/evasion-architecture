@@ -83,15 +83,37 @@ let TestDecodePreyActionChangeVelocity() =
 
 [<Test>]
 let TestEncodeHunterActionRemoveWall() = 
-    let action = RemoveWall(Horizontal(31<m>, 0<m>, 300<m>))
+    let action = RemoveWalls([Horizontal(31<m>, 0<m>, 300<m>)])
     let expected= "remove 0 31 300 31"
     Assert.That(encodeHunterAction action, Is.EqualTo(expected))
 
 [<Test>]
 let TestDecodeHunterActionRemoveWall() = 
     let string= "remove 0 31 300 31"
-    let expected = RemoveWall(Horizontal(31<m>, 0<m>, 300<m>))
+    let expected = RemoveWalls([Horizontal(31<m>, 0<m>, 300<m>)])
     Assert.That(decodeHunterAction string, Is.EqualTo(expected))
+
+
+[<Test>]
+let TestDecodeHunterActionRemoveWallsMultiple() = 
+    let string= "remove 0 31 300 31 remove 31 0 31 300"
+    let expected = RemoveWalls([Horizontal(31<m>, 0<m>, 300<m>); Vertical(31<m>, 0<m>, 300<m>)])
+    Assert.That(decodeHunterAction string, Is.EqualTo(expected))
+
+
+[<Test>]
+let TestDecodeHunterActionRemoveWallsMultipleMore() = 
+    let string= "remove 0 31 300 31 remove 31 0 31 300 remove 0 30 300 30"
+    let expected = RemoveWalls([Horizontal(31<m>, 0<m>, 300<m>); Vertical(31<m>, 0<m>, 300<m>); Horizontal(30<m>, 0<m>, 300<m>)])
+    Assert.That(decodeHunterAction string, Is.EqualTo(expected))
+
+[<Test>]
+let TestDecodeHunterActionRemoveWallsMultipleAndCreate() = 
+    let string= "remove 0 31 300 31 remove 31 0 31 300 remove 0 30 300 30 create 50 0 50 300"
+    let expected = RemoveAndCreate([Horizontal(31<m>, 0<m>, 300<m>); Vertical(31<m>, 0<m>, 300<m>); Horizontal(30<m>, 0<m>, 300<m>)], Vertical(50<m>, 0<m>, 300<m>))
+    Assert.That(decodeHunterAction string, Is.EqualTo(expected))
+
+
 
 [<Test>]
 let TestEncodePreyNoAction() = 

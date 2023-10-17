@@ -30,13 +30,21 @@ class MyClient(EvasionClient):
         Useful variables and functions for you to use:
         - self.config: contains next_wall_time (N) and max_walls (M) values
         - game: contains entire new game state at a given tick (passed as a parameter every tick). See the GameState class for what variables it contains.
-        - self.move_create_wall, self.move_remove_wall, self.move_no_op: functions to create the move string (return these from this function)
+        - self.move_create_wall, self.move_only_remove_walls, self.move_remove_walls_and_create, self.move_no_op: functions to create the move string 
+          (you must return the function call from this function as it returns a string. Use only one of these options to move). 
         Make sure you return the move string from this function.
 
         TODO: Fill this in with your code below.
         At the moment, chooses a move at random (not guaranteed to be valid).
         """
         # Dummy random player: delete the code below and replace with your player.
+        if len(game.walls) > 0:
+            walls = game.walls
+            random.shuffle(walls)
+            num_to_remove = random.randint(1, len(walls))
+            walls_to_remove = walls[0:num_to_remove]
+        else:
+            walls_to_remove = []
         roll = random.random()
         if roll <= 0.9:
             return self.move_no_op()
@@ -45,7 +53,10 @@ class MyClient(EvasionClient):
                 x = game.hunter_position.x
                 y1 = random.randint(0, game.hunter_position.y)
                 y2 = random.randint(game.hunter_position.y, MAX_HEIGHT)
-                return self.move_create_wall(Wall(x, y1, x, y2))
+                if len(walls_to_remove) > 0 and roll > 0.940:
+                    return self.move_remove_walls_and_create(walls_to_remove, Wall(x, y1, x, y2))
+                else:
+                    return self.move_create_wall(Wall(x, y1, x, y2))
             else:
                 return self.move_no_op()
         elif 0.945 < roll <= 0.99: 
@@ -53,12 +64,15 @@ class MyClient(EvasionClient):
                 y = game.hunter_position.y
                 x1 = random.randint(0, game.hunter_position.x)
                 x2 = random.randint(game.hunter_position.x, MAX_WIDTH)
-                return self.move_create_wall(Wall(x1, y, x2, y))
+                if len(walls_to_remove) > 0 and roll > 0.985:
+                    return self.move_remove_walls_and_create(walls_to_remove, Wall(x1, y, x2, y))
+                else:
+                    return self.move_create_wall(Wall(x1, y, x2, y))
             else:
                 return self.move_no_op()
         else:
-            if len(game.walls) > 0:
-                return self.move_remove_wall(random.choice(game.walls))
+            if len(walls_to_remove) > 0:
+                return self.move_only_remove_walls(walls[0:num_to_remove])
             else:
                 return self.move_no_op()
 

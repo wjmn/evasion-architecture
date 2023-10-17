@@ -199,3 +199,6 @@ let removeWall (toRemove: Wall) (walls: Wall list) : Wall list =
                 loop remaining (wall :: acc)
 
     loop walls []
+
+let removeWalls (toRemove: Wall list) (walls: Wall list) : Wall list = 
+    List.fold (fun acc w -> removeWall w acc) walls toRemove
