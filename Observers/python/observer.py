@@ -76,7 +76,7 @@ class Observer():
         process = (
             ffmpeg
                 .input('pipe:', format='rawvideo', pix_fmt='rgb24', s='{}x{}'.format(MAX_WIDTH, MAX_HEIGHT))
-                .output(filename, pix_fmt='yuv420p', vcodec="libx264", r=500)
+                .output(filename, pix_fmt='yuv420p', vcodec="libx264", r=800)
                 .overwrite_output()
                 .run_async(pipe_stdin=True)
         )
@@ -89,8 +89,8 @@ class Observer():
             image[0:MAX_HEIGHT, 0, :] = 255
             image[0:MAX_HEIGHT, MAX_WIDTH-1, :] = 255
 
-            # draw hunter in red
-            image[state.game.hunter_position.y, state.game.hunter_position.x, :] = [255, 0, 0]
+            # draw hunter in mostly red
+            image[state.game.hunter_position.y, state.game.hunter_position.x, :] = [255, 100, 0]
 
             # draw prey in white
             image[state.game.prey_position.y, state.game.prey_position.x, :] = [255, 255, 255]
