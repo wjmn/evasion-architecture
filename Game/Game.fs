@@ -218,7 +218,7 @@ let pointsBetween (p1: Point) (p2: Point) =
             D <- D - 2 * dx 
         D <- D + 2 * dy
     // skip the endpoints because walls can't collide hunter and prey
-    points |> Seq.skip 1
+    points
 
 
 /// Steps the game and returns an outcome.
