@@ -197,11 +197,34 @@ let step (game: State) (hunterAction: HunterAction) (preyAction: PreyAction) : S
         PreyVelocity = newPreyVelocity
         Walls = walls }
 
+
+let pointsBetween (p1: Point) (p2: Point) = 
+    let mutable dx = p2.X - p1.X
+    let mutable dy = p2.Y - p1.Y
+    let mutable D = 2 * dy - dx 
+    let mutable y = p1.Y
+    let points = ResizeArray<Point>()
+    for x = int p1.X to int p2.X  do 
+        points.Add({ X = m x; Y = y })
+        if D > 0<m> then 
+            y <- y + 1<m>
+            D <- D - 2 * dx 
+        D <- D + 2 * dy
+    // skip the endpoints because walls can't collide hunter and prey
+    points |> Seq.skip 1
+
+
 /// Steps the game and returns an outcome.
-/// TODO: does it matter if there is a wall in the way? Probably does. This needs to check for a wall between prey and hunter...Add a test for this edge case. 
 let stepOutcome (game: State) (hunterAction: HunterAction) (preyAction: PreyAction) : Outcome =
     let newState = step game hunterAction preyAction
     if distance newState.HunterPosition newState.PreyPosition <= 4 then 
-        PreyIsCaught newState
+        let pointsToCheck = pointsBetween newState.HunterPosition newState.PreyPosition
+        // If a wall is between hunter and prey then the game continues: the prey is not caught yet
+        if Seq.exists (fun p -> List.exists (fun w -> wallCollidesPoint w p) newState.Walls) pointsToCheck then
+            Continues newState
+        else
+            PreyIsCaught newState
     else
         Continues newState
+
+    
