@@ -35,10 +35,11 @@ type State =
       PreyVelocity: Velocity
       Walls: Wall list }
 
-/// Actions that can be taken by the hunter.
+/// Single that can be taken by the hunter.
 type HunterAction =
+    | RemoveAndCreate of Remove: Wall list * Create: Wall
+    | RemoveWalls of Wall list
     | CreateWall of Wall
-    | RemoveWall of Wall
     | HunterNoAction
 
 /// Actions that can be taken by the prey.
@@ -158,12 +159,18 @@ let step (game: State) (hunterAction: HunterAction) (preyAction: PreyAction) : S
     // Create and destroy walls
     let (walls, lastWall) =
         match hunterAction with
+        | RemoveAndCreate(walls, wall)-> 
+            let newWalls = removeWalls walls game.Walls
+            if wallIsValid { game with Walls = newWalls} wall then
+                (wall :: newWalls, Some(game.Ticker))
+            else
+                (newWalls, game.HunterLastWall)
         | CreateWall wall ->
             if wallIsValid game wall then
                 (wall :: game.Walls, Some(game.Ticker))
             else
                 (game.Walls, game.HunterLastWall)
-        | RemoveWall wall -> (removeWall wall game.Walls, game.HunterLastWall)
+        | RemoveWalls walls -> (removeWalls walls game.Walls, game.HunterLastWall)
         | HunterNoAction -> (game.Walls, game.HunterLastWall)
 
     // Calculate the new hunter position

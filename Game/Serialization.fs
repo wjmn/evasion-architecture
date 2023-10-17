@@ -75,8 +75,9 @@ let decodeGame (N: int) (M: int) (json: string) =
 
 let encodeHunterAction (action: HunterAction) =
     match action with
+    | RemoveAndCreate(remove, create) -> ([ for wall in remove do $"remove{encodeWall wall}" ] |> String.concat "") + $"create{encodeWall create}"
     | CreateWall(wall) -> $"create{encodeWall wall}"
-    | RemoveWall(wall) -> $"remove{encodeWall wall}"
+    | RemoveWalls(walls) -> [ for wall in walls do $"remove{encodeWall wall}" ] |> String.concat ""
     | HunterNoAction -> "none"
 
 let encodePreyAction (action: PreyAction) =
@@ -84,22 +85,38 @@ let encodePreyAction (action: PreyAction) =
     | ChangeVelocity(velocity) -> $"change {velocity.X} {velocity.Y}"
     | PreyNoAction -> "none"
 
-/// There are three possible hunter actions: create a wall, remove a wall, or do nothing.
+/// A hunter can remove any number of walls (including none), plus either create a wall or do nothing. 
 /// 
 /// Below shows how each of these actions should be encoded for the decoder to work:
+/// - `remove x1 y1 x2 y2 remove x1 y1 x2 y2 create x1 y1 x2 y2`
 /// - `create x1 y1 x2 y2`
-/// - `remove x1 y1 x2 y2`
+/// - `remove x1 y1 x2 y2 remove x1 y1 x2 y2`
 /// - `none`
+/// 
+/// You MUST put all the walls you want to remove before the create action. After the create word is found, 
+/// it will process the create action and then ignore any further words.
 /// 
 /// Can raise an exception if input is invalid!
 /// 
 /// Any other words count as no action.
+/// 
+/// Please ensure you do not send an exorbitant amount of non-existent walls to remove...
 let decodeHunterAction (string: string) =
     let split = string.Split()
     match split[0] with 
     | "create" -> CreateWall(decodeWall split.[1] split.[2] split.[3] split.[4])
-    | "remove" -> RemoveWall(decodeWall split.[1] split.[2] split.[3] split.[4])
     | "none" -> HunterNoAction
+    | "remove" -> 
+        let wallsToRemove = ResizeArray()
+        let mutable i = 0 
+        while i < split.Length && split[i] = "remove" do 
+            wallsToRemove.Add(decodeWall split.[i+1] split.[i+2] split.[i+3] split.[i+4])
+            i <- i + 5
+        if i < split.Length && split[i] = "create" then
+            let wallToCreate = decodeWall split.[i+1] split.[i+2] split.[i+3] split.[i+4]
+            RemoveAndCreate(wallsToRemove |> List.ofSeq, wallToCreate)
+        else
+            RemoveWalls(wallsToRemove |> List.ofSeq)
     | _ -> HunterNoAction
 
 /// There are two possible prey actions: change velocity or do nothing.
