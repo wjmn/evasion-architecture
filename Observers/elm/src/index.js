@@ -11,6 +11,7 @@ const websocket = new WebSocket('ws://127.0.0.1:4000');
 
 websocket.onopen = (e) => {
   console.log("Websocket connected.");
+  app.ports.messageReceiver.send("");
 };
 
 websocket.onmessage = (e) => {

@@ -18,7 +18,8 @@ port messageReceiver : (String -> msg) -> Sub msg
 
 
 type State
-    = AwaitingHunterName
+    = AwaitingConnection
+    | AwaitingHunterName
     | AwaitingPreyName
     | AwaitingInitialConfigAndGame
     | GameLoop
@@ -39,7 +40,7 @@ type alias Model =
 
 default : Model
 default =
-    { state = AwaitingHunterName
+    { state = AwaitingConnection
     , hunterName = "HUNTER"
     , preyName = "PREY"
     , configuration = { nextWallTime = 0, maximumWalls = 0 }
@@ -76,6 +77,9 @@ update msg model =
 
         PortMessageReceived message ->
             case model.state of
+                AwaitingConnection -> 
+                    { model | state = AwaitingHunterName }
+                        |> withCmdNone
                 AwaitingHunterName ->
                     { model | hunterName = message, state = AwaitingPreyName }
                         |> withCmdNone
@@ -193,15 +197,35 @@ viewWall wall =
 
 
 isCaught : State -> Bool
-isCaught state = 
+isCaught state =
+    case state of
+        FinishedCaught ->
+            True
+
+        _ ->
+            False
+
+
+isTimeout : State -> Bool
+isTimeout state =
+    case state of
+        FinishedTimeout ->
+            True
+
+        _ ->
+            False
+
+awaitingConnection state = 
     case state of 
-        FinishedCaught -> True
+        AwaitingConnection -> True
         _ -> False
 
-isTimeout : State -> Bool 
-isTimeout state = 
+awaitingGameServer : State -> Bool
+awaitingGameServer state = 
     case state of 
-        FinishedTimeout  -> True
+        AwaitingHunterName -> True
+        AwaitingPreyName -> True
+        AwaitingInitialConfigAndGame -> True
         _ -> False
 
 ---- VIEW ----
@@ -273,7 +297,7 @@ view model =
                     ]
                 ]
             , div [ tw "border-white flex flex-col w-96 justify-between" ]
-                [ div [ tw "w-full border-2 border-white flex items-center flex-col text-center p-4" ]
+                [ div [ tw "w-full flex items-center flex-col text-center p-4" ]
                     [ img [ src "hunter.png", tw "w-56" ] []
                     , div [ tw "flex flex-col items-center" ]
                         [ div [ tw "font-bold text-xl" ] [ text model.hunterName ]
@@ -307,12 +331,16 @@ view model =
                 , div [ tw "grow flex justify-center items-center flex-col" ]
                     [ div [ tw "w-full text-center flex items-center justify-center flex-col mb-2" ]
                         [ div [ tw "text-sm", style "font-variant" "small-caps" ] [ text "game ticks" ]
-                        , div [ tw "text-4xl font-bold" , twIf (isCaught model.state) "text-red-500", twIf (isTimeout model.state) "text-green-500"
-                        ] [ text (String.fromInt model.game.ticker) ]
+                        , div
+                            [ tw "text-4xl font-bold"
+                            , twIf (isCaught model.state) "text-red-500"
+                            , twIf (isTimeout model.state) "text-green-500"
+                            ]
+                            [ text (String.fromInt model.game.ticker) ]
                         ]
                     , div [ tw "text-xs text-center", style "font-variant" "small-caps" ] [ text ("N=" ++ String.fromInt model.configuration.nextWallTime ++ " & M=" ++ String.fromInt model.configuration.maximumWalls) ]
                     ]
-                , div [ tw "w-full border-2 border-white flex items-center flex-col text-center p-4" ]
+                , div [ tw "w-full flex items-center flex-col text-center p-4" ]
                     [ img [ src "prey.png", tw "w-56" ] []
                     , div [ tw "flex flex-col items-center" ]
                         [ div [ tw "font-bold text-xl" ] [ text model.preyName ]
@@ -335,6 +363,19 @@ view model =
                             ]
                         ]
                     ]
+                ]
+            ]
+        , div [ tw "absolute top-0 left-0 w-screen h-screen flex justify-center items-center", twIf (not <| awaitingConnection model.state) "hidden" ]
+            [ div [ tw "h-screen opacity-50 bg-neutral-700 w-screen absolute top-0 left-0 z-0" ] []
+            , div [ tw "w-96 p-8 rounded bg-black z-50 shadow" ]
+                [ div [ tw "text-sm uppercase text-center font-bold mb-4" ] [ text "Not Connected to Game Server" ]
+                , div [ tw "text-center text-sm" ] [ text "The game server needs to be started before this page is loaded. Please start the game server and then refresh this page." ]
+                ]]
+         , div [ tw "absolute top-0 left-0 w-screen h-screen flex justify-center items-center", twIf (not <| awaitingGameServer model.state) "hidden" ]
+            [ div [ tw "h-screen opacity-50 bg-neutral-700 w-screen absolute top-0 left-0 z-0" ] []
+            , div [ tw "w-96 p-8 rounded bg-black z-50 shadow" ]
+                [ div [ tw "text-sm uppercase text-center font-bold mb-4" ] [ text "Connected & Awaiting Game Start" ]
+                , div [ tw "text-center text-sm" ] [ text "The observer is connected; waiting for hunter and prey to connect for the game to start. Make sure you connect to the server in the order Observer, Hunter, Prey." ]
                 ]
             ]
         ]
