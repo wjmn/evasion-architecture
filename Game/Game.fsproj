@@ -7,6 +7,5 @@
     <Compile Include="Field.fs" />
     <Compile Include="Game.fs" />
     <Compile Include="Serialization.fs" />
-    <Compile Include="Library.fs" />
   </ItemGroup>
 </Project>

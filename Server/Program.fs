@@ -334,8 +334,8 @@ let main args =
     | _ -> 
         printfn "Invalid number of arguments given for the server."
         printfn "Usage:"
-        printfn "    evasion PORT N M"
+        printfn "    ./Server PORT N M"
         printfn "         Will run game on 127.0.0.1 port PORT with configuration values N and M."
-        printfn "    evasion N M"
+        printfn "    ./Server N M"
         printfn "         Will run game on 127.0.0.1 port 4000 with configuration values N and M."
     0 
