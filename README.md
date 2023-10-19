@@ -2,7 +2,7 @@
 
 ## Quickstart
 
-1. Start the game server `./evasion-architecture N M`.
+1. Start the game server `./Server N M` (download from Releases tab).
 2. Open `Observers/elm/index.html` in your browser.
 3. Connect your hunter e.g. `python random_player.py`.
 4. Connect your prey e.g. `python random_player.py`.
@@ -119,13 +119,13 @@ Invalid actions are ignored and considered as `none`. You can inspect the server
 To run the game server, download the release appropriate for your system from the Releases tab and run it with your values of N and M. For example, for N=50 and M=10, run:
 
 ```bash
-./evasion-architecture 50 10
+./Server 50 10
 ```
 
 This will start the game server on localhost port 4000. You can optionally specify the port number:
 
 ```bash
-./evasion-architecture 4000 50 10
+./Server 4000 50 10
 ```
 
 You must then connect the observer, hunter and prey to the game server, **in that order**. 
