@@ -73,7 +73,7 @@ let stepBy (v: Velocity) (p: Point) : Point =
 /// Note: p.X and p.Y will never exceed the boundaries, so it is
 /// sufficient to perform an equalty check rather than full comparison.
 let collidesBoundary (p: Point) : bool =
-    p.X = 0<m> || p.X = MaxWidth || p.Y = 0<m> || p.Y = MaxHeight
+    p.X = -1<m> || p.X = MaxWidth || p.Y = -1<m> || p.Y = MaxHeight
 
 /// Checks if a wall collides with a point. 
 let wallCollidesPoint (wall: Wall) (p: Point) : bool =

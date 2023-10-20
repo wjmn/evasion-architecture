@@ -24,8 +24,16 @@ let TestCollidesVerticalBoundary () =
     Assert.That(collidesBoundary p, Is.EqualTo(expected))
 
 [<Test>]
-let TestCollidesHorizontalBoundary () =
+let TestCollidesNotHorizontalBoundary () =
     let p: Point = { X = 0<m>; Y = 50<m> }
+    let expected = false
+    Assert.That(collidesBoundary p, Is.EqualTo(expected))
+
+
+
+[<Test>]
+let TestCollidesHorizontalBoundary () =
+    let p: Point = { X = -1<m>; Y = 50<m> }
     let expected = true
     Assert.That(collidesBoundary p, Is.EqualTo(expected))
 
