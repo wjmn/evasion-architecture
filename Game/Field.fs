@@ -182,9 +182,9 @@ let wallCollidesWalls (newWall: Wall) (walls: Wall list) : bool =
 let wallInBounds (wall: Wall) : bool = 
     match wall with 
     | Horizontal(y, x1, x2) ->
-        y >= 0<m> && y <= MaxHeight && x1 >= 0<m> && x1 <= MaxWidth && x2 >= 0<m> && x2 <= MaxWidth
+        y >= 0<m> && y < MaxHeight && x1 >= 0<m> && x1 < MaxWidth && x2 >= 0<m> && x2 < MaxWidth
     | Vertical(x, y1, y2) ->
-        x >= 0<m> && x <= MaxWidth && y1 >= 0<m> && y1 <= MaxHeight && y2 >= 0<m> && y2 <= MaxHeight
+        x >= 0<m> && x < MaxWidth && y1 >= 0<m> && y1 < MaxHeight && y2 >= 0<m> && y2 < MaxHeight
 
 /// Remove a wall from a list (if it is not present, returns the original list).
 /// Requires that the wall only be present in this list once.
