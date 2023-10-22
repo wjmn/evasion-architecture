@@ -92,7 +92,7 @@ dummyGame =
     , hunterPosition = { x = 0, y = 0 }
     , hunterVelocity = { x = 1, y = 1 }
     , hunterLastWallTime = Nothing
-    , preyPosition = { x = 200, y = 230 }
+    , preyPosition = { x = 230, y = 200}
     , preyVelocity = { x = 0, y = 0 }
     , walls = []
     }
