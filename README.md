@@ -8,6 +8,15 @@
 4. Connect your prey e.g. `python random_player.py`.
 5. The game will play, with live updates shown on the open Observer page.
 
+Running server on Crackle with local display:
+1. SSH local tunnel from local computer to access node: `ssh -L LOCAL_PORT:localhost:ACCESS_PORT username@access.cims.nyu.edu`
+2. SSH local tunnel from access node to crackle3: `ssh -L ACCESS_PORT:localhost:CRACKLE_PORT username@crackle3.cims.nyu.edu`
+3. Run the server on crackle3 on `CRACKLE_PORT`
+4. Open the Observer page locally (making sure the port number is `LOCAL_PORT` in the JavaScript connection code)
+5. Connect your hunter on crackle3 
+6. Connect your prey on crackle3
+7. The game should play on crackle3, with display on the local observer.
+
 ## Your Client
 
 ### Using the provided Python client
