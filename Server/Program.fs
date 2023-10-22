@@ -24,6 +24,10 @@ let InitialTime = 120000.0
 [<Literal>]
 let ThrottleTime = 5.0
 
+/// The maximum number of ticks that can occur before the game is concluded (at which prey score is considered infinity.)
+[<Literal>]
+let TickCap = 24000<s>
+
 //-------------------------------------------------------------------------------
 // TYPES & UTILITY FUNCS
 //-------------------------------------------------------------------------------
@@ -32,6 +36,7 @@ let ThrottleTime = 5.0
 type Outcome = 
     | PreyTimedOut of At: int<s>
     | PreyIsCaught of At: int<s>
+    | GameCapReached
     | NoOutcome
 
 /// Wrapper around writing to streams to ensure flushing.
@@ -167,125 +172,133 @@ type Server(port: int, config: Game.Config) =
 
         while not stop do
 
-            let iterationStart = DateTime.Now 
-            logYellow $"[GAME] Current game state: {Serialization.encodeGame game}"
+            if game.Ticker = TickCap then 
+                log $"[TIME] The maximum game tick has been reached. The game has now concluded."
+                sendWsMessage observerHandle observerStream $"timeout %.2f{hunterTimeRemaining} %.2f{float TickCap} {Serialization.encodeGame game}"
+                stop <- true
+                outcome <- GameCapReached
 
-            // Cancellation tokens
-            let hunterCts = new CancellationTokenSource(int (Math.Round(hunterTimeRemaining)))
-            let hunterCt = hunterCts.Token
-            let preyCts = new CancellationTokenSource(int (Math.Round(preyTimeRemaining)))
-            let preyCt = preyCts.Token
+            else
 
-            // Initialise the taks to read the hunter string
-            let hunterActionStringAsync = 
-                if hunterTimeRemaining > 0.0 then 
-                    task {
-                        writeTo hunterWriter (Serialization.encodeGame game)
-                        log $"[SEND] Sent game state to hunter. Awaiting reply."
+                let iterationStart = DateTime.Now 
+                logYellow $"[GAME] Current game state: {Serialization.encodeGame game}"
+
+                // Cancellation tokens
+                let hunterCts = new CancellationTokenSource(int (Math.Round(hunterTimeRemaining)))
+                let hunterCt = hunterCts.Token
+                let preyCts = new CancellationTokenSource(int (Math.Round(preyTimeRemaining)))
+                let preyCt = preyCts.Token
+
+                // Initialise the taks to read the hunter string
+                let hunterActionStringAsync = 
+                    if hunterTimeRemaining > 0.0 then 
+                        task {
+                            writeTo hunterWriter (Serialization.encodeGame game)
+                            log $"[SEND] Sent game state to hunter. Awaiting reply."
+                            let startTime = DateTime.Now
+                            let! hunterActionString =  hunterReader.ReadLineAsync(hunterCt)
+                            let endTime = DateTime.Now
+                            let timeTaken = (endTime - startTime).TotalMilliseconds
+                            hunterTimeRemaining <- hunterTimeRemaining - timeTaken
+                            log $"[READ] Received action [{hunterActionString}] from hunter after %.5f{timeTaken / 1000.0}ms. Hunter has %.4f{hunterTimeRemaining/1000.0}s remaining."
+                            return hunterActionString
+                        }
+                    else
+                        log $"[INFO] Hunter has timed out and is no longer allowed to make further actions."
+                        task { return "none" }
+
+                // Initialise the task to read the prey string
+                let preyActionStringAsync = task {
+                    // Only request an action from prey every odd tick
+                    if game.Ticker % 2<s> = 1<s> then 
+                        writeTo preyWriter (Game.Serialization.encodeGame game)
+                        log $"[SEND] Sent game state to prey. Awaiting reply."
                         let startTime = DateTime.Now
-                        let! hunterActionString =  hunterReader.ReadLineAsync(hunterCt)
+                        let! preyActionString = preyReader.ReadLineAsync(preyCt) 
                         let endTime = DateTime.Now
                         let timeTaken = (endTime - startTime).TotalMilliseconds
-                        hunterTimeRemaining <- hunterTimeRemaining - timeTaken
-                        log $"[READ] Received action [{hunterActionString}] from hunter after %.5f{timeTaken / 1000.0}ms. Hunter has %.4f{hunterTimeRemaining/1000.0}s remaining."
-                        return hunterActionString
-                    }
+                        preyTimeRemaining <- preyTimeRemaining - timeTaken
+                        log $"[READ] Received action [{preyActionString}] from prey after %.5f{timeTaken / 1000.0}s. Prey has %.4f{preyTimeRemaining/1000.0}s remaining."
+                        return preyActionString
+                    else
+                        log $"[INFO] Prey is not allowed to make an action on this tick."
+                        return "none"
+                }
+
+                // Await the hunter task 
+                try hunterActionStringAsync.Wait(hunterCt) with 
+                    | :? OperationCanceledException -> 
+                        log $"[TIME] Hunter timed out. Play continues but the hunter may make no further actions."
+                        hunterTimeRemaining <- 0.0
+                let hunterActionString = 
+                    try hunterActionStringAsync.Result with 
+                    | :? AggregateException -> 
+                        "none"
+
+                // Await the prey task
+                try preyActionStringAsync.Wait(preyCt) with 
+                    | :? OperationCanceledException -> 
+                        log $"[TIME] Prey timed out. The game has now concluded."
+                        // writeTo observerWriter $"timeout %.2f{hunterTimeRemaining} %.2f{preyTimeRemaining} {Serialization.encodeGame game}"
+                        sendWsMessage observerHandle observerStream $"timeout %.2f{hunterTimeRemaining} %.2f{preyTimeRemaining} {Serialization.encodeGame game}"
+                        stop <- true
+                        outcome <- PreyTimedOut(At = game.Ticker)
+                        preyTimeRemaining <- 0.0
+                let preyActionString = 
+                    try preyActionStringAsync.Result with 
+                    | :? AggregateException  -> 
+                        "none"
+                
+                // If prey still has time remaining, then compute the next step: otherwise, conclude the game
+                if preyTimeRemaining > 0.0 then 
+
+                    let hunterAction = 
+                        try Serialization.decodeHunterAction hunterActionString with
+                        | e -> 
+                            logRed $"[HBUG] Invalid hunter action string {hunterActionString}. Ignoring hunter action."
+                            Game.HunterNoAction
+
+                    let preyAction = 
+                        try Serialization.decodePreyAction preyActionString with 
+                        | e -> 
+                            logRed $"[PBUG] Invalid prey action string {preyActionString}. Ignoring prey action."
+                            Game.PreyNoAction
+
+                    // Check time for a single step for debugging
+                    let stepStart = DateTime.Now
+
+                    let stepped = stepOutcome game hunterAction preyAction
+
+                    // Timer variables
+                    let iterationEnd = DateTime.Now
+                    let stepTimeTaken = (iterationEnd - stepStart).TotalMilliseconds
+                    let iterationTimeTaken = (iterationEnd - iterationStart).TotalMilliseconds
+
+                    // log $"[INFO] Iteration time {iterationTimeTaken}ms. Step time {stepTimeTaken}ms."
+
+                    // Check if prey is caught or if game continues
+                    match stepped with 
+                    | Game.Continues steppedGame -> 
+                        game <- steppedGame
+                        // writeTo observerWriter $"continues %.2f{hunterTimeRemaining} %.2f{preyTimeRemaining} {Serialization.encodeGame game}"
+                        sendWsMessage observerHandle observerStream $"continues %.2f{hunterTimeRemaining} %.2f{preyTimeRemaining} {Serialization.encodeGame game}"
+                        // Don't update the frame any faster than 100fps
+                        if iterationTimeTaken < ThrottleTime then 
+                            Thread.Sleep(int <| Math.Round(ThrottleTime - iterationTimeTaken))
+                    | Game.PreyIsCaught steppedGame -> 
+                        game <- steppedGame
+                        // writeTo observerWriter $"caught %.2f{hunterTimeRemaining} %.2f{preyTimeRemaining} {Serialization.encodeGame game}"
+                        sendWsMessage observerHandle observerStream $"caught %.2f{hunterTimeRemaining} %.2f{preyTimeRemaining} {Serialization.encodeGame game}"
+                        stop <- true 
+                        outcome <- PreyIsCaught(At = game.Ticker)
+
+                // Prey has timed out: conclude the game
                 else
-                    log $"[INFO] Hunter has timed out and is no longer allowed to make further actions."
-                    task { return "none" }
-
-            // Initialise the task to read the prey string
-            let preyActionStringAsync = task {
-                // Only request an action from prey every odd tick
-                if game.Ticker % 2<s> = 1<s> then 
-                    writeTo preyWriter (Game.Serialization.encodeGame game)
-                    log $"[SEND] Sent game state to prey. Awaiting reply."
-                    let startTime = DateTime.Now
-                    let! preyActionString = preyReader.ReadLineAsync(preyCt) 
-                    let endTime = DateTime.Now
-                    let timeTaken = (endTime - startTime).TotalMilliseconds
-                    preyTimeRemaining <- preyTimeRemaining - timeTaken
-                    log $"[READ] Received action [{preyActionString}] from prey after %.5f{timeTaken / 1000.0}s. Prey has %.4f{preyTimeRemaining/1000.0}s remaining."
-                    return preyActionString
-                else
-                    log $"[INFO] Prey is not allowed to make an action on this tick."
-                    return "none"
-            }
-
-            // Await the hunter task 
-            try hunterActionStringAsync.Wait(hunterCt) with 
-                | :? OperationCanceledException -> 
-                    log $"[TIME] Hunter timed out. Play continues but the hunter may make no further actions."
-                    hunterTimeRemaining <- 0.0
-            let hunterActionString = 
-                try hunterActionStringAsync.Result with 
-                | :? AggregateException -> 
-                    "none"
-
-            // Await the prey task
-            try preyActionStringAsync.Wait(preyCt) with 
-                | :? OperationCanceledException -> 
                     log $"[TIME] Prey timed out. The game has now concluded."
                     // writeTo observerWriter $"timeout %.2f{hunterTimeRemaining} %.2f{preyTimeRemaining} {Serialization.encodeGame game}"
                     sendWsMessage observerHandle observerStream $"timeout %.2f{hunterTimeRemaining} %.2f{preyTimeRemaining} {Serialization.encodeGame game}"
                     stop <- true
                     outcome <- PreyTimedOut(At = game.Ticker)
-                    preyTimeRemaining <- 0.0
-            let preyActionString = 
-                try preyActionStringAsync.Result with 
-                | :? AggregateException  -> 
-                    "none"
-            
-            // If prey still has time remaining, then compute the next step: otherwise, conclude the game
-            if preyTimeRemaining > 0.0 then 
-
-                let hunterAction = 
-                    try Serialization.decodeHunterAction hunterActionString with
-                    | e -> 
-                        logRed $"[HBUG] Invalid hunter action string {hunterActionString}. Ignoring hunter action."
-                        Game.HunterNoAction
-
-                let preyAction = 
-                    try Serialization.decodePreyAction preyActionString with 
-                    | e -> 
-                        logRed $"[PBUG] Invalid prey action string {preyActionString}. Ignoring prey action."
-                        Game.PreyNoAction
-
-                // Check time for a single step for debugging
-                let stepStart = DateTime.Now
-
-                let stepped = stepOutcome game hunterAction preyAction
-
-                // Timer variables
-                let iterationEnd = DateTime.Now
-                let stepTimeTaken = (iterationEnd - stepStart).TotalMilliseconds
-                let iterationTimeTaken = (iterationEnd - iterationStart).TotalMilliseconds
-
-                // log $"[INFO] Iteration time {iterationTimeTaken}ms. Step time {stepTimeTaken}ms."
-
-                // Check if prey is caught or if game continues
-                match stepped with 
-                | Game.Continues steppedGame -> 
-                    game <- steppedGame
-                    // writeTo observerWriter $"continues %.2f{hunterTimeRemaining} %.2f{preyTimeRemaining} {Serialization.encodeGame game}"
-                    sendWsMessage observerHandle observerStream $"continues %.2f{hunterTimeRemaining} %.2f{preyTimeRemaining} {Serialization.encodeGame game}"
-                    // Don't update the frame any faster than 100fps
-                    if iterationTimeTaken < ThrottleTime then 
-                        Thread.Sleep(int <| Math.Round(ThrottleTime - iterationTimeTaken))
-                | Game.PreyIsCaught steppedGame -> 
-                    game <- steppedGame
-                    // writeTo observerWriter $"caught %.2f{hunterTimeRemaining} %.2f{preyTimeRemaining} {Serialization.encodeGame game}"
-                    sendWsMessage observerHandle observerStream $"caught %.2f{hunterTimeRemaining} %.2f{preyTimeRemaining} {Serialization.encodeGame game}"
-                    stop <- true 
-                    outcome <- PreyIsCaught(At = game.Ticker)
-
-            // Prey has timed out: conclude the game
-            else
-                log $"[TIME] Prey timed out. The game has now concluded."
-                // writeTo observerWriter $"timeout %.2f{hunterTimeRemaining} %.2f{preyTimeRemaining} {Serialization.encodeGame game}"
-                sendWsMessage observerHandle observerStream $"timeout %.2f{hunterTimeRemaining} %.2f{preyTimeRemaining} {Serialization.encodeGame game}"
-                stop <- true
-                outcome <- PreyTimedOut(At = game.Ticker)
 
 
         match outcome with 
@@ -293,6 +306,8 @@ type Server(port: int, config: Game.Config) =
             logGreen $"[FINN] >>> Prey [{preyName}] escaped evasion until game ticker={t} when prey's clock-time timeout occurred <<<"
         | PreyIsCaught(At = t) -> 
             logBlue $"[FINN] >>> Prey [{preyName}] was caught at game ticker={t} <<<"
+        | GameCapReached ->
+            logGreen $"[FINN] >>> Prey [{preyName}] escaped evasion until the game cap.<<<"
         | NoOutcome -> 
             log $"[FINN] No outcome was recorded. This should be unreachable and indicates a bug in the server."
 

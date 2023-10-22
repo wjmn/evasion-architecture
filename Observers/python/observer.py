@@ -55,6 +55,8 @@ class Observer():
             elif discriminator == "timeout":
                 game = decode_game(" ".join(state[3:]))
                 print("Prey evaded until timeout!")
+            elif discriminator == "huntertime" or discriminator == "preytime":
+                continue
             hunter_remaining = float(state[1])
             prey_remaining = float(state[2])
 

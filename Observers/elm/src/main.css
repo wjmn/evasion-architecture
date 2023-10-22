@@ -1,3 +1,6 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 /*
   elm-hot creates an additional div wrapper around the app to make HMR possible.
   This could break styling in development mode if you are using Elm UI.
@@ -20,7 +23,7 @@ html {
   }
   50% {
     background-color: crimson;
-    transform: scale(2);
+    transform: scale(4);
   }
   100% {
     background-color: cyan;
@@ -30,23 +33,27 @@ html {
 
 @keyframes hunter-decorator-red {
   0% {
-    transform:rotateZ(0);
+    transform:scale(0.8) rotateZ(0deg);
+  }
+  50% {
+    transform:scale(1.2) rotateZ(180deg);
   }
   100% {
-    transform:rotateZ(360deg);
+    transform:scale(0.8) rotateZ(360deg);
   }
 }
 
 @keyframes hunter-decorator-blue {
   0% {
-    transform:rotateZ(45deg);
+    transform:scale(0.8) rotateZ(45deg);
     opacity: 1;
   }
   50% {
+    transform:scale(1.2) rotateZ(-135deg);
     opacity: 0.76;
   }
   100% {
-    transform:rotateZ(-325deg);
+    transform:scale(0.8) rotateZ(-315deg);
     opacity: 1;
   }
 }
@@ -56,7 +63,7 @@ html {
     transform: scale(0);
   }
   50% {
-    transform: scale(1);
+    transform: scale(2);
   }
   100% {
     transform: scale(0);
@@ -78,6 +85,38 @@ html {
   }
 }
 
+@keyframes catch-flash {
+  0% {
+    background-color: red;
+    opacity: 0.75;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.text-tiny {
+  font-size: 0.7rem;
+  margin-left: 0.75rem;
+  margin-top: -0.55rem;
+}
+
+.cross::after {
+  display: block;
+  position: absolute;
+  color: red;
+  border: 1px dashed red;
+  top: -0.5rem;
+  left: -0.5rem;
+  width: 1rem;
+  height: 1rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  line-height: 0;
+  content: "\00d7"; /* This will render the 'X' */
+}
+
 
 
 
@@ -91,13 +130,13 @@ html {
 
 .hunter-decorator-red {
   animation-name: hunter-decorator-red;
-  animation-duration: 2s;
+  animation-duration: 0.43s;
   animation-iteration-count: infinite;
   animation-timing-function: linear;
 }
 .hunter-decorator-blue {
   animation-name: hunter-decorator-blue;
-  animation-duration: 4s;
+  animation-duration: 0.67s;
   animation-iteration-count: infinite;
   animation-timing-function: linear;
 }
@@ -113,4 +152,9 @@ html {
   animation-duration: 1.5s;
   animation-iteration-count: infinite;
   animation-timing-function: linear;
+}
+
+.catch-flash {
+  animation-name: catch-flash; 
+  animation-duration: 3s;
 }

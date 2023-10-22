@@ -205,7 +205,7 @@ class EvasionClient:
         self.socket.connect(("127.0.0.1", port))
 
         # Send over the team name
-        self.send(f"{self.team_name} (Python)")
+        self.send(f"{self.team_name}.py")
         print("Connected to server.")
 
         # Read the initial configuration

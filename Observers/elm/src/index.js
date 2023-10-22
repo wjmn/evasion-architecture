@@ -2,8 +2,14 @@ import './main.css';
 import { Elm } from './Main.elm';
 import * as serviceWorker from './serviceWorker';
 
+let previousData = localStorage.getItem("evasion-previous-data");
+if (previousData === null || previousData === undefined) {
+  previousData = "[]";
+};
+
 var app = Elm.Main.init({
-  node: document.getElementById('root')
+  node: document.getElementById('root'),
+  flags: previousData
 });
 
 // Websocket connection
@@ -23,6 +29,9 @@ websocket.onclose = (e) => {
   console.log("Websocket closed.");
 };
 
+app.ports.savePreviousString.subscribe(function(previousString) {
+  localStorage.setItem("evasion-previous-data", previousString);
+});
 
 // If you want your app to work offline and load faster, you can change
 // unregister() to register() below. Note this comes with some pitfalls.
