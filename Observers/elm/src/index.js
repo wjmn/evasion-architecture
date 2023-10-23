@@ -21,7 +21,6 @@ websocket.onopen = (e) => {
 };
 
 websocket.onmessage = (e) => {
-  console.log(e.data);
   app.ports.messageReceiver.send(e.data);
 };
 
