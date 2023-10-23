@@ -200,7 +200,7 @@ type Server(port: int, config: Game.Config) =
                             let endTime = DateTime.Now
                             let timeTaken = (endTime - startTime).TotalMilliseconds
                             hunterTimeRemaining <- hunterTimeRemaining - timeTaken
-                            log $"[READ] Received action [{hunterActionString}] from hunter after %.5f{timeTaken / 1000.0}ms. Hunter has %.4f{hunterTimeRemaining/1000.0}s remaining."
+                            log $"[READ] Received action [{hunterActionString}] from hunter after %.5f{timeTaken / 1000.0}s. Hunter has %.4f{hunterTimeRemaining/1000.0}s remaining."
                             return hunterActionString
                         }
                     else
