@@ -7347,7 +7347,7 @@ var $author$project$Main$viewWall = function (wall) {
 				$elm$html$Html$Attributes$style,
 				'height',
 				$author$project$Main$pct(
-					A2($author$project$Main$toTopValue, wall.y2, $author$project$Main$wallWidth) - A2($author$project$Main$toTopValue, wall.y1, $author$project$Main$wallWidth))),
+					A2($author$project$Main$toTopValue, wall.y2, $author$project$Main$wallWidth) - A2($author$project$Main$toTopValue, wall.y1, $author$project$Main$wallWidth) + $author$project$Main$dotWidth)),
 				A2(
 				$elm$html$Html$Attributes$style,
 				'width',
@@ -7372,7 +7372,7 @@ var $author$project$Main$viewWall = function (wall) {
 				$elm$html$Html$Attributes$style,
 				'width',
 				$author$project$Main$pct(
-					A2($author$project$Main$toLeftValue, wall.x2, $author$project$Main$wallWidth) - A2($author$project$Main$toLeftValue, wall.x1, $author$project$Main$wallWidth))),
+					A2($author$project$Main$toLeftValue, wall.x2, $author$project$Main$wallWidth) - A2($author$project$Main$toLeftValue, wall.x1, $author$project$Main$wallWidth) + $author$project$Main$dotWidth)),
 				A2(
 				$elm$html$Html$Attributes$style,
 				'height',
@@ -7455,7 +7455,7 @@ var $author$project$Main$view = function (model) {
 								$elm$html$Html$div,
 								_List_fromArray(
 									[
-										$author$project$Main$tw('border-white border-2 p-1')
+										$author$project$Main$tw('border-white border-2')
 									]),
 								_List_fromArray(
 									[

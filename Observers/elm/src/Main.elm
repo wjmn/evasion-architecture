@@ -284,7 +284,7 @@ viewWall wall =
         div
             [ style "left" (pct <| toLeftValue wall.x1 wallWidth)
             , style "top" (pct <| toTopValue wall.y1 wallWidth)
-            , style "height" (pct <| toTopValue wall.y2 wallWidth - toTopValue wall.y1 wallWidth)
+            , style "height" (pct <| toTopValue wall.y2 wallWidth - toTopValue wall.y1 wallWidth + dotWidth)
             , style "width" (pct wallWidth)
             , tw "absolute wall border-l"
             ]
@@ -294,7 +294,7 @@ viewWall wall =
         div
             [ style "left" (pct <| toLeftValue wall.x1 wallWidth)
             , style "top" (pct <| toTopValue wall.y1 wallWidth)
-            , style "width" (pct <| toLeftValue wall.x2 wallWidth - toLeftValue wall.x1 wallWidth)
+            , style "width" (pct <| toLeftValue wall.x2 wallWidth - toLeftValue wall.x1 wallWidth + dotWidth)
             , style "height" (pct wallWidth)
             , tw "absolute wall border-t"
             ]
@@ -424,7 +424,7 @@ view model =
                 , div [ tw "text-xs" ] (List.indexedMap viewHistoryItem model.previousOutcomes)
                 ]
             , div [ tw "h-full flex justify-center items-center mr-8" ]
-                [ div [ tw "border-white border-2 p-1" ]
+                [ div [ tw "border-white border-2" ]
                     [ div [ style "height" "90vh", style "width" "90vh", tw "relative overflow-hidden" ]
                         [ --- Graveyard
                           div [] (List.map viewGrave model.previousOutcomes)
