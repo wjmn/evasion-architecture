@@ -419,7 +419,7 @@ view : Model -> Html Msg
 view model =
     div [ tw "bg-black h-screen flex justify-center items-center text-white p-4" ]
         [ div [ tw "flex justify-center" ]
-            [ div [ tw "h-full w-72 mr-8 overflow-auto" ]
+            [ div [ tw "h-full w-72 mr-8 overflow-auto max-h-90vh" ]
                 [ div [ tw "flex justify-between items-center mb-6" ] [ h1 [ tw "uppercase font-bold" ] [ text "History" ], div [ tw "text-xs" ] [ text "(click to delete)" ] ]
                 , div [ tw "text-xs" ] (List.indexedMap viewHistoryItem model.previousOutcomes)
                 ]

@@ -16,6 +16,11 @@ html {
   font-family: "Iosevka Aile", Iosevka, "Roboto Mono", "Cascadia Code", Consolas, "Fira Code", Menlo, Monaco, ui-monospace, monospace;
 }
 
+.max-h-90vh {
+  max-height: 90vh;
+  padding-right: 0.55rem;
+}
+
 @keyframes hunter-indicator {
   0% {
     background-color: cyan;
