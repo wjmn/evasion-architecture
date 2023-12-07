@@ -284,7 +284,7 @@ viewWall wall =
         div
             [ style "left" (pct <| toLeftValue wall.x1 wallWidth)
             , style "top" (pct <| toTopValue wall.y1 wallWidth)
-            , style "height" (pct <| toTopValue wall.y2 wallWidth - toTopValue wall.y1 wallWidth + dotWidth)
+            , style "height" (pct <| toTopValue wall.y2 wallWidth - toTopValue wall.y1 wallWidth + 0.33)
             , style "width" (pct wallWidth)
             , tw "absolute wall"
             ]
@@ -294,7 +294,7 @@ viewWall wall =
         div
             [ style "left" (pct <| toLeftValue wall.x1 wallWidth)
             , style "top" (pct <| toTopValue wall.y1 wallWidth)
-            , style "width" (pct <| toLeftValue wall.x2 wallWidth - toLeftValue wall.x1 wallWidth + dotWidth)
+            , style "width" (pct <| toLeftValue wall.x2 wallWidth - toLeftValue wall.x1 wallWidth + 0.33)
             , style "height" (pct wallWidth)
             , tw "absolute wall"
             ]
